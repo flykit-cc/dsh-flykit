@@ -1,0 +1,5 @@
+# dsh-flykit bundle patch: one row. The host half is a no-op; the client half
+# is discovered from package.json `dsh.client` once this row exists.
+- insert:
+    - id: flykit
+      name: dsh-flykit
