@@ -190,6 +190,27 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 }
 
 .flykit-editor-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* One tab per open file. The strip scrolls sideways rather than wrapping, so the editor keeps its height. */
+.flykit-doctabs {
+  display: flex; align-items: flex-end; gap: 2px; flex: none; padding: 4px 6px 0; overflow-x: auto;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2); scrollbar-width: none;
+}
+.flykit-doctabs::-webkit-scrollbar { height: 0; }
+.flykit-doctab {
+  display: flex; align-items: center; gap: 6px; flex: none; box-sizing: border-box; max-width: 190px; height: 26px;
+  padding: 0 4px 0 8px; border-radius: 8px 8px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary); border: 0.5px solid transparent; border-bottom: none; margin-bottom: -0.5px;
+}
+.flykit-doctab:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-doctab[aria-selected="true"] { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border-color: var(--dsw-alias-border-l2); }
+.flykit-doctab svg { flex: none; }
+.flykit-doctab-name { overflow: hidden; text-overflow: ellipsis; }
+.flykit-doctab-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-warn-primary); }
+.flykit-doctab button { all: unset; display: grid; place-items: center; flex: none; width: 16px; height: 16px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-doctab button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-doctab button svg { width: 10px; height: 10px; }
+
 .flykit-editor-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
 .flykit-editor-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--dsw-alias-label-secondary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .flykit-save { width: auto; height: 24px; margin: 0; padding: 0 10px; font-size: 12px; color: var(--dsw-alias-label-primary-inverted); background: var(--dsw-alias-button-primary-fill); }

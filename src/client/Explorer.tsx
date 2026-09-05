@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDocs } from './docs.ts'
 import { Editor } from './Editor.tsx'
+import { EditorTabs } from './EditorTabs.tsx'
 import { FileTree } from './FileTree.tsx'
 import { EyeIcon } from './icons.tsx'
 import { Preview, previewKind } from './Preview.tsx'
@@ -48,57 +50,23 @@ function useWatch(sessionId: string, onBatch: (paths: string[]) => void): void {
   }, [sessionId])
 }
 
-interface Doc { path: string; text: string; saved: string; error?: string; stale?: boolean }
-
-function useDoc(sessionId: string, path: string | null) {
-  const [doc, setDoc] = useState<Doc | null>(null)
-  const [reloadTick, setReloadTick] = useState(0)
-  useEffect(() => {
-    if (path === null) { setDoc(null); return }
-    const ac = new AbortController()
-    fetch(api('file', sessionId, { path }), { cache: 'no-store', signal: ac.signal })
-      .then(r => r.json())
-      .then((j: { text?: string; error?: string }) => {
-        setDoc({ path, text: j.text ?? '', saved: j.text ?? '', error: j.text === undefined ? (j.error ?? 'cannot open') : undefined })
-      })
-      .catch(() => {})
-    return () => { ac.abort() }
-  }, [sessionId, path, reloadTick])
-
-  /** Disk changed under the open file: clean docs follow it, dirty ones keep your edits and get a notice. */
-  const diskChanged = () => setDoc(d => {
-    if (d === null) return d
-    if (d.text === d.saved) { setReloadTick(t => t + 1); return d }
-    return { ...d, stale: true }
-  })
-  const reload = () => setReloadTick(t => t + 1)
-
-  const save = () => {
-    if (doc === null || doc.text === doc.saved) return
-    const text = doc.text
-    fetch(api('file', sessionId, { path: doc.path }), { method: 'PUT', body: text })
-      .then(r => { if (r.ok) setDoc(d => d === null || d.path !== doc.path ? d : { ...d, saved: text }) })
-      .catch(() => {})
-  }
-  return { doc, setText: (text: string) => setDoc(d => d === null ? d : { ...d, text }), save, diskChanged, reload }
-}
-
-/** Filter + file tree over an editor/preview pane, with a draggable divider between them. */
+/** Filter + file tree over a tabbed editor/preview pane, with a draggable divider between them. */
 export function Explorer({ sessionId }: { sessionId: string }) {
   const { treeRatio } = usePanel()
   const [tick, setTick] = useState(0)
   const { files, loading } = useFiles(sessionId, tick)
   const [filter, setFilter] = useState('')
-  const [path, setPath] = useState<string | null>(null)
   const [changed, setChanged] = useState<Set<string>>(() => new Set())
-  const { doc, setText, save, diskChanged, reload } = useDoc(sessionId, path)
+  const { docs, activePath, active: doc, open, close, setText, save, reload, diskChanged } = useDocs(sessionId)
 
   useWatch(sessionId, paths => {
     setTick(t => t + 1)
-    if (paths.length > 0) setChanged(c => new Set([...c, ...paths.filter(p => p !== path)]))
-    if (path !== null && (paths.length === 0 || paths.includes(path))) diskChanged()
+    // A file already open is shown by its own tab; the tree only marks the ones you cannot see.
+    const unseen = paths.filter(p => !docs.some(d => d.path === p))
+    if (unseen.length > 0) setChanged(c => new Set([...c, ...unseen]))
+    diskChanged(paths)
   })
-  const select = (p: string) => { setPath(p); setChanged(c => { if (!c.has(p)) return c; const n = new Set(c); n.delete(p); return n }) }
+  const select = (p: string) => { open(p); setChanged(c => { if (!c.has(p)) return c; const n = new Set(c); n.delete(p); return n }) }
   const dirty = doc !== null && doc.text !== doc.saved
   const [preview, setPreview] = useState(true)
   const canPreview = doc !== null && previewKind(doc.path) !== null
@@ -112,14 +80,15 @@ export function Explorer({ sessionId }: { sessionId: string }) {
       top={
         <div className="flykit-files-pane">
           <input className="flykit-filter" placeholder="Filter files…" value={filter} onChange={e => setFilter(e.currentTarget.value)} />
-          <FileTree files={files} filter={filter} selected={path} changed={changed} loading={loading} onSelect={select} />
+          <FileTree files={files} filter={filter} selected={activePath} changed={changed} loading={loading} onSelect={select} />
         </div>
       }
       bottom={
         <div className="flykit-editor-pane">
+          <EditorTabs docs={docs} active={activePath} onSelect={open} onClose={close} />
           {doc !== null && (
             <div className="flykit-editor-bar">
-              <span className="flykit-editor-path" title={doc.path}>{doc.path}{dirty ? ' ●' : ''}</span>
+              <span className="flykit-editor-path" title={doc.path}>{doc.path}</span>
               {canPreview && (
                 <button type="button" className="flykit-iconbtn" title={showPreview ? 'Edit source' : 'Preview'} aria-pressed={showPreview} onClick={() => setPreview(p => !p)}>
                   <EyeIcon />
