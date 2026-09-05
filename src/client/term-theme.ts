@@ -3,8 +3,8 @@ import type { ITheme } from '@xterm/xterm'
 // Terminal content palette, like the file icons: One Light / One Dark, chosen to
 // read on the shell's own background. Chrome around it stays on --dsw-* tokens.
 const LIGHT = {
-  black: '#383a42', red: '#e45649', green: '#50a14f', yellow: '#c18401', blue: '#4078f2', magenta: '#a626a4', cyan: '#0184bc', white: '#a0a1a7',
-  brightBlack: '#696c77', brightRed: '#e45649', brightGreen: '#50a14f', brightYellow: '#c18401', brightBlue: '#4078f2', brightMagenta: '#a626a4', brightCyan: '#0184bc', brightWhite: '#383a42',
+  black: '#383a42', red: '#ca1243', green: '#3f8f3e', yellow: '#986801', blue: '#2f6bd8', magenta: '#a626a4', cyan: '#0a7a9e', white: '#8b8f98',
+  brightBlack: '#696c77', brightRed: '#ca1243', brightGreen: '#3f8f3e', brightYellow: '#986801', brightBlue: '#2f6bd8', brightMagenta: '#a626a4', brightCyan: '#0a7a9e', brightWhite: '#383a42',
 }
 const DARK = {
   black: '#282c34', red: '#e06c75', green: '#98c379', yellow: '#e5c07b', blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#abb2bf',

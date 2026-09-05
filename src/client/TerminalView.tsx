@@ -12,6 +12,8 @@ export function TerminalView({ sessionId, id }: { sessionId: string; id: string 
     const el = host.current!
     const term = new Terminal({
       cursorBlink: true, fontSize: 12.5, lineHeight: 1.35, scrollback: 5000, allowProposedApi: true,
+      // Tools that emit truecolor bypass the palette; xterm darkens or lightens any text colour to at least this contrast.
+      minimumContrastRatio: 4.5,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
       theme: terminalTheme(),
     })
