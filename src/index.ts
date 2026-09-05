@@ -12,7 +12,7 @@ import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
 import { claudeUsage } from './claude-usage.js'
-import { fetchOpenRouter } from './catalog-sync.js'
+import { fetchDeepSeekIds, fetchOpenRouter } from './catalog-sync.js'
 import { screenText } from './term-io.js'
 // Type-only: declares `ctx.settings`.
 import type {} from '@deepseek-ai/dsh-settings'
@@ -146,13 +146,30 @@ export function apply(ctx: Context): void {
   // composition without the settings service simply keeps the static list.
   ctx.inject(['settings'], (scope: Context) => {
     const NS = 'llm-pi-ai'
-    const sync = async (): Promise<{ count: number } | { skipped: string }> => {
+    const DS = 'llm-deepseek'
+    /**
+     * DeepSeek's own provider, checked rather than written: see `fetchDeepSeekIds`.
+     * Silent unless the live list names something the adapter is not configured for.
+     */
+    const deepSeekNote = async (): Promise<string | undefined> => {
+      const creds = (scope as { credentials?: { resolve: (ref: string) => Promise<{ value: string } | undefined> } }).credentials
+      if (creds === undefined) return undefined
+      const cfg = scope.settings.get(DS) as { apiKeyEnv?: string; baseURL?: string; models?: { id: string }[] } | undefined
+      const key = await creds.resolve(cfg?.apiKeyEnv ?? 'DEEPSEEK_API_KEY').catch(() => undefined)
+      if (key === undefined) return undefined
+      const live = await fetchDeepSeekIds(key.value, cfg?.baseURL)
+      if (cfg?.models === undefined) return undefined   // adapter defaults are in force; nothing to compare against
+      const missing = live.filter(id => !cfg.models!.some(m => m.id === id))
+      return missing.length === 0 ? undefined : `DeepSeek adds ${missing.join(', ')}`
+    }
+    const sync = async (): Promise<{ count: number; note?: string } | { skipped: string }> => {
       const doc = scope.settings.get(NS) as { providers?: Record<string, unknown> } | undefined
       if (doc?.providers?.['openrouter'] === undefined) return { skipped: 'openrouter not configured' }
       const models = await fetchOpenRouter()
       if (models.length < 50) return { skipped: `only ${models.length} models returned` }   // never replace a full list with a stub
       await scope.settings.mutate(NS, [{ op: 'set', path: ['providers', 'openrouter', 'models'], value: models }])
-      return { count: models.length }
+      const note = await deepSeekNote().catch(() => undefined)
+      return { count: models.length, ...(note === undefined ? {} : { note }) }
     }
     // Once at boot, then daily; failures are logged, never thrown into the host.
     const run = () => { sync().then(r => { if ('count' in r) console.log(`[flykit] openrouter catalog: ${r.count} models`) }).catch(e => console.warn('[flykit] catalog sync failed:', e instanceof Error ? e.message : e)) }

@@ -1,4 +1,4 @@
-import type { Doc } from './docs.ts'
+import { type Doc, tabLabels } from './docs.ts'
 import { CloseIcon, FileIcon } from './icons.tsx'
 
 function baseName(path: string): string { return path.slice(path.lastIndexOf('/') + 1) }
@@ -13,6 +13,7 @@ export interface EditorTabsProps {
 /** One tab per open file: a dot while unsaved, middle-click or × to close. */
 export function EditorTabs({ docs, active, onSelect, onClose }: EditorTabsProps) {
   if (docs.length === 0) return null
+  const label = tabLabels(docs.map(d => d.path))
   return (
     <div className="flykit-doctabs" role="tablist">
       {docs.map(d => (
@@ -29,7 +30,7 @@ export function EditorTabs({ docs, active, onSelect, onClose }: EditorTabsProps)
           }}
         >
           <FileIcon name={baseName(d.path)} />
-          <span className="flykit-doctab-name">{baseName(d.path)}</span>
+          <span className="flykit-doctab-name">{label.get(d.path)}</span>
           {d.text !== d.saved && <span className="flykit-doctab-dot" title="Unsaved changes" />}
           <button
             type="button"

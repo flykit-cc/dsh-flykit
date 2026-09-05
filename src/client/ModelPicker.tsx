@@ -132,7 +132,7 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
               onClick={() => {
                 setSync('busy')
                 fetch('/api/flykit/catalog-sync', { method: 'POST' }).then(r => r.json())
-                  .then((j: { count?: number; skipped?: string; error?: string }) => { setSync(j.count !== undefined ? `Synced ${j.count} models` : (j.skipped ?? j.error ?? 'failed')); load() })
+                  .then((j: { count?: number; note?: string; skipped?: string; error?: string }) => { setSync(j.count !== undefined ? `Synced ${j.count} models${j.note === undefined ? '' : ` · ${j.note}`}` : (j.skipped ?? j.error ?? 'failed')); load() })
                   .catch(() => setSync('failed'))
               }}
             >
@@ -162,13 +162,19 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
                   )}
                   <div
                     role="option" aria-selected={r.key === currentKey} data-cursor={i === cursor} className="fkm-row"
+                    title={`${r.model.name}\n${r.model.id}`}
                     onMouseEnter={() => setCursor(i)} onClick={() => pick(r)}
                   >
                     <span className="fkm-check">{r.key === currentKey && '✓'}</span>
-                    <span className="fkm-name">{r.model.name}</span>
-                    {r.model.reasoning !== undefined && <span className="fkm-badge">reasoning</span>}
-                    {(showProvider || r.fav === true) && <span className="fkm-provider">{r.provider.name}</span>}
-                    <span className="fkm-id">{r.model.id}</span>
+                    {/* Two lines: the name owns a whole row, so a long one stays readable instead of racing the id for width. */}
+                    <span className="fkm-main">
+                      <span className="fkm-line">
+                        <span className="fkm-name">{r.model.name}</span>
+                        {r.model.reasoning !== undefined && <span className="fkm-badge">reasoning</span>}
+                        {(showProvider || r.fav === true) && <span className="fkm-provider">{r.provider.name}</span>}
+                      </span>
+                      <span className="fkm-id">{r.model.id}</span>
+                    </span>
                     <button type="button" className="fkm-star" data-on={fav.includes(r.key) || undefined} aria-label="Favorite" onClick={e => { e.stopPropagation(); toggleFav(r.key) }}>★</button>
                   </div>
                 </div>

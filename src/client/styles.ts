@@ -64,6 +64,8 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 /* Two stacked panes plus a grab strip; the top pane holds a percentage, the rest fills. */
 .flykit-split { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-split-pane { flex: none; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* The display:flex above would otherwise beat the hidden attribute the one-pane modes rely on. */
+.flykit-split-pane[hidden] { display: none; }
 .flykit-split-rest { flex: 1; height: auto; }
 .flykit-split-bar {
   position: relative; flex: none; height: 7px; cursor: row-resize; touch-action: none; z-index: 2;

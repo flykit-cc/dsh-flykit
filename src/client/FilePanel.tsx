@@ -70,17 +70,16 @@ export function FilePanel() {
         </div>
       </div>
       <div className="flykit-panel-body">
-        {split
-          ? (
-            <SplitPane
-              ratio={splitRatio}
-              onRatio={r => setPanel({ splitRatio: r })}
-              label="Resize Agents pane"
-              top={<Terminals sessionId={sessionId} />}
-              bottom={<Explorer sessionId={sessionId} />}
-            />
-          )
-          : tab === 'files' ? <Explorer sessionId={sessionId} /> : <Terminals sessionId={sessionId} />}
+        {/* One mount point for both views. Toggling split or tabs only hides a pane,
+            so editor tabs and live terminals survive the switch. */}
+        <SplitPane
+          mode={split ? 'split' : tab === 'files' ? 'bottom' : 'top'}
+          ratio={splitRatio}
+          onRatio={r => setPanel({ splitRatio: r })}
+          label="Resize Agents pane"
+          top={<Terminals sessionId={sessionId} />}
+          bottom={<Explorer sessionId={sessionId} />}
+        />
       </div>
     </aside>
   )

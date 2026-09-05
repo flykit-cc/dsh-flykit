@@ -37,6 +37,8 @@ export function TerminalView({ sessionId, id, autoFocus = true }: { sessionId: s
 
     let lastSize = ''
     const sendSize = () => {
+      // A hidden pane measures 0: fitting there would resize the PTY to a stub and reflow its output.
+      if (el.clientWidth === 0 || el.clientHeight === 0) return
       fit.fit()
       const size = `${term.cols}x${term.rows}`
       if (size === lastSize) return

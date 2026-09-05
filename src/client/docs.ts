@@ -79,3 +79,22 @@ export function useDocs(sessionId: string) {
 
   return { docs, activePath, active: docs.find(d => d.path === activePath) ?? null, open, close, setText, save, reload, diskChanged }
 }
+
+/** File name from a workspace-relative path. */
+function baseName(path: string): string { return path.slice(path.lastIndexOf('/') + 1) }
+
+/**
+ * Tab labels: the file name alone, unless two open files share it — then the
+ * parent folder comes along, so `index.ts` and `index.ts` read as `src/index.ts`
+ * and `client/index.ts` instead of two identical tabs.
+ */
+export function tabLabels(paths: string[]): Map<string, string> {
+  const count = new Map<string, number>()
+  for (const p of paths) count.set(baseName(p), (count.get(baseName(p)) ?? 0) + 1)
+  return new Map(paths.map(p => {
+    const base = baseName(p)
+    if ((count.get(base) ?? 0) < 2) return [p, base]
+    const cut = p.lastIndexOf('/')
+    return [p, cut < 0 ? `./${base}` : `${baseName(p.slice(0, cut))}/${base}`]
+  }))
+}

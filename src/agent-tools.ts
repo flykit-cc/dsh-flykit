@@ -98,17 +98,19 @@ function tail(text: string, maxChars: number): string {
 }
 
 /** One-shot headless run. `claude` speaks JSON; `pi` prints the answer as text. */
-function runHeadless(agent: 'claude' | 'pi', prompt: string, cwd: string, timeoutMs: number, signal: AbortSignal): Promise<string> {
+function runHeadless(agent: 'claude' | 'pi' | 'codex', prompt: string, cwd: string, timeoutMs: number, signal: AbortSignal): Promise<string> {
   const argv = agent === 'claude'
     ? ['-p', prompt, '--output-format', 'json']
+    // `codex exec` is the CLI's own non-interactive mode; it prints plain text.
+    : agent === 'codex' ? ['exec', prompt]
     : ['-p', prompt]
   return new Promise(resolve => {
     execFile(agent, argv, { cwd, timeout: timeoutMs, maxBuffer: RUN_MAX_BUFFER, signal, encoding: 'utf8' }, (err, stdout, stderr) => {
       // Not a PTY, so this is ordinary text; only colour codes need removing.
       const text = stripAnsi(stdout).trim()
       if (text === '') resolve(err === null ? '(no output)' : `${agent} failed: ${err.message}\n${stripAnsi(stderr).trim()}`)
-      else if (agent === 'pi') resolve(text)
-      else resolve(claudeResult(text))
+      else if (agent === 'claude') resolve(claudeResult(text))
+      else resolve(text)
     })
   })
 }
@@ -271,11 +273,11 @@ export function agentTools(): ToolDefinition[] {
     defineTool({
       name: 'flykit_agent_run',
       description:
-        'Ask claude or pi one question in this workspace and return its answer. Headless: no terminal, no '
+        'Ask claude, pi or codex one question in this workspace and return its answer. Headless: no terminal, no '
         + 'follow-up, nothing appears in the panel. Prefer this over start/send/wait whenever one prompt and '
         + 'one answer are enough. The sub-agent can read and edit files in this workspace.',
       parameters: {
-        agent: { type: 'string', enum: ['claude', 'pi'], required: true },
+        agent: { type: 'string', enum: ['claude', 'pi', 'codex'], required: true },
         prompt: { type: 'string', required: true, description: 'The whole task; the sub-agent sees nothing else.' },
         timeoutMs: { type: 'integer', description: 'Give up after this long (default 300000).' },
       },

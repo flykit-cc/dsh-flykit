@@ -48,3 +48,21 @@ export async function fetchOpenRouter(signal?: AbortSignal): Promise<ModelProfil
   return (j.data ?? []).filter(m => typeof m.id === 'string' && m.id !== '').map(fromOpenRouter)
     .sort((a, b) => a.name.localeCompare(b.name))
 }
+
+/**
+ * DeepSeek's own platform API. It answers ids only — no context window, no
+ * modalities — and today it names exactly the three the adapter already ships,
+ * so this reports rather than writes: a settings write would have to invent the
+ * metadata the adapter's defaults carry, and would drop their descriptions.
+ * ponytail: report-only. Turn it into a write once DeepSeek serves metadata,
+ * or once /models returns an id the adapter does not know.
+ */
+export async function fetchDeepSeekIds(apiKey: string, baseURL = 'https://api.deepseek.com', signal?: AbortSignal): Promise<string[]> {
+  const r = await fetch(`${baseURL.replace(/\/+$/, '')}/models`, {
+    signal: signal ?? AbortSignal.timeout(15_000),
+    headers: { authorization: `Bearer ${apiKey}`, 'user-agent': 'dsh-flykit' },
+  })
+  if (!r.ok) throw new Error(`deepseek models: http ${r.status}`)
+  const j = await r.json() as { data?: { id?: unknown }[] }
+  return (j.data ?? []).map(m => m.id).filter((id): id is string => typeof id === 'string' && id !== '').sort()
+}
