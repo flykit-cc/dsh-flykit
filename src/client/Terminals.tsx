@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api.ts'
 import { AgentGlyph, CloseIcon } from './icons.tsx'
 import { TerminalView } from './TerminalView.tsx'
+import { ClaudeUsage } from './ClaudeUsage.tsx'
 
 interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; startedAt?: number }
 
@@ -46,6 +47,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
             <button type="button" aria-label="Close terminal" onClick={e => { e.stopPropagation(); close(t.id) }}><CloseIcon /></button>
           </div>
         ))}
+        <ClaudeUsage />
         <div className="flykit-term-new">
           <button type="button" className="flykit-term-add" title="New agent" onClick={() => setPicking(p => !p)} aria-expanded={picking}>+</button>
           {picking && (

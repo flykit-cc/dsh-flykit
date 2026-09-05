@@ -9,6 +9,7 @@ import { gitStatus } from './git.js'
 import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
+import { claudeUsage } from './claude-usage.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -99,6 +100,17 @@ export function apply(ctx: Context): void {
     },
   }), 'flykit: /api/flykit/term/stream')
   ctx.effect(() => () => terms.closeAll(), 'flykit: terminals')
+  // Subscription usage of the Claude Code login on this machine; no session needed, token stays host-side.
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/api/flykit/claude-usage',
+    handler: async (_req, res) => {
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.setHeader('cache-control', 'no-store')
+      try { res.end(JSON.stringify(await claudeUsage())) }
+      catch (e) { res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) })) }
+    },
+  }), 'flykit: /api/flykit/claude-usage')
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/api/flykit/watch',

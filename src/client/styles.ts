@@ -105,7 +105,17 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-term-card[data-dead] .flykit-term-state { background: var(--dsw-alias-label-dimmed); box-shadow: none; }
 .flykit-term-card button { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
 .flykit-term-card button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
-.flykit-term-new { position: relative; margin-left: auto; }
+.flykit-usage { display: flex; align-items: center; gap: 10px; margin-left: auto; padding: 0 4px; }
+.flykit-usage-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
+.flykit-usage-label { font-weight: 500; }
+.flykit-usage-bar { width: 44px; height: 4px; border-radius: 2px; overflow: hidden; background: var(--dsw-alias-border-l2); }
+.flykit-usage-bar > span { display: block; height: 100%; border-radius: 2px; background: var(--dsw-alias-brand-primary); transition: width var(--ds-transition-duration) var(--ds-ease-in-out); }
+.flykit-usage-item[data-tone="warn"] .flykit-usage-bar > span { background: var(--dsw-alias-state-warn-primary); }
+.flykit-usage-item[data-tone="error"] .flykit-usage-bar > span { background: var(--dsw-alias-state-error-primary); }
+.flykit-usage-pct { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-secondary); }
+.flykit-term-new { position: relative; }
+.flykit-usage + .flykit-term-new { margin-left: 4px; }
+.flykit-term-tabs > .flykit-term-new:first-child, .flykit-term-card + .flykit-term-new { margin-left: auto; }
 .flykit-term-add {
   all: unset; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1;
   color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
