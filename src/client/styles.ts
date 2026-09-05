@@ -86,6 +86,15 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-editor { flex: 1; min-height: 0; overflow: hidden; }
 .flykit-editor .cm-editor { height: 100%; }
 .flykit-empty { margin: 16px; color: var(--dsw-alias-label-tertiary); }
+.flykit-iconbtn {
+  display: grid; place-items: center; flex: none; width: 24px; height: 24px;
+  border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;
+}
+.flykit-iconbtn:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-iconbtn[aria-pressed="true"] { color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-interactive-bg-active); }
+.flykit-preview { flex: 1; min-height: 0; }
+.flykit-preview-md { overflow: auto; padding: 12px 20px 24px; font-size: 14px; line-height: 1.6; }
+.flykit-preview-frame { border: none; width: 100%; background: var(--dsw-alias-bg-base); }
 `
 
 export function installStyles(): () => void {

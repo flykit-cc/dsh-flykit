@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from './Editor.tsx'
 import { FileTree } from './FileTree.tsx'
-import { CloseIcon } from './icons.tsx'
+import { CloseIcon, EyeIcon } from './icons.tsx'
+import { Preview, previewKind } from './Preview.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
 
 const api = (route: string, sessionId: string, path = '') =>
@@ -51,6 +52,9 @@ function FilesTab({ sessionId }: { sessionId: string }) {
   const [path, setPath] = useState<string | null>(null)
   const { doc, setText, save } = useDoc(sessionId, path)
   const dirty = doc !== null && doc.text !== doc.saved
+  const [preview, setPreview] = useState(true)
+  const canPreview = doc !== null && previewKind(doc.path) !== null
+  const showPreview = canPreview && preview
 
   return (
     <>
@@ -62,11 +66,18 @@ function FilesTab({ sessionId }: { sessionId: string }) {
         {doc !== null && (
           <div className="flykit-editor-bar">
             <span className="flykit-editor-path" title={doc.path}>{doc.path}{dirty ? ' ●' : ''}</span>
+            {canPreview && (
+              <button type="button" className="flykit-iconbtn" title={showPreview ? 'Edit source' : 'Preview'} aria-pressed={showPreview} onClick={() => setPreview(p => !p)}>
+                <EyeIcon />
+              </button>
+            )}
             <button type="button" className="flykit-save" disabled={!dirty} onClick={save}>Save</button>
           </div>
         )}
         {doc?.error !== undefined && <p className="flykit-empty">{doc.error}</p>}
-        {doc !== null && doc.error === undefined && <Editor path={doc.path} text={doc.text} onChange={setText} onSave={save} />}
+        {doc !== null && doc.error === undefined && (showPreview
+          ? <Preview path={doc.path} text={doc.text} />
+          : <Editor path={doc.path} text={doc.text} onChange={setText} onSave={save} />)}
         {doc === null && <p className="flykit-empty">Pick a file</p>}
       </div>
     </>
