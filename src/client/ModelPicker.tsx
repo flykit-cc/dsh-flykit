@@ -104,6 +104,7 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
   const effortName = reasoning?.efforts.find(x => x.id === effort)?.name ?? (reasoning === undefined ? undefined : 'Default')
   const providers = state.groups
   const grouped = filter === 'all'
+  const showProvider = filter === 'recent' || filter === 'fav'   // a provider pill already names it
 
   return (
     <div className="fkm-root">
@@ -146,7 +147,7 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
                     <span className="fkm-check">{r.key === currentKey && '✓'}</span>
                     <span className="fkm-name">{r.model.name}</span>
                     {r.model.reasoning !== undefined && <span className="fkm-badge">reasoning</span>}
-                    {!grouped && <span className="fkm-provider">{r.provider.name}</span>}
+                    {showProvider && <span className="fkm-provider">{r.provider.name}</span>}
                     <span className="fkm-id">{r.model.id}</span>
                     <button type="button" className="fkm-star" data-on={fav.includes(r.key) || undefined} aria-label="Favorite" onClick={e => { e.stopPropagation(); toggleFav(r.key) }}>★</button>
                   </div>

@@ -10,6 +10,20 @@ export const AGENTS: Record<string, { label: string; argv: string[] }> = {
   codex: { label: 'Codex', argv: ['codex'] },
 }
 
+/**
+ * The host may itself run under an agent (dsh web started from a Claude Code
+ * shell). Those markers would make every spawned agent think it is a child
+ * session, so they never reach the PTY.
+ */
+function cleanEnv(): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v === undefined || k.startsWith('CLAUDE_CODE') || k === 'CLAUDECODE' || k.startsWith('PI_SESSION') || k.startsWith('CODEX_')) continue
+    env[k] = v
+  }
+  return env
+}
+
 const SCROLLBACK = 256 << 10   // bytes of output replayed to a (re)attaching browser
 
 export interface Term {
@@ -46,7 +60,7 @@ export function open(sessionId: string, cwd: string, agent: string, cols: number
   const [cmd, ...args] = spec.argv
   const pty = spawn(cmd!, args, {
     name: 'xterm-256color', cols, rows, cwd,
-    env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', FLYKIT_SESSION: sessionId } as Record<string, string>,
+    env: { ...cleanEnv(), TERM: 'xterm-256color', COLORTERM: 'truecolor', FLYKIT_SESSION: sessionId },
   })
   const t: Term = {
     id: randomUUID(), sessionId, agent, name: name?.trim() || spec.label,

@@ -159,12 +159,12 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 .flykit-term-hero-row button:hover { background: var(--dsw-alias-interactive-bg-hover); border-color: var(--dsw-alias-border-l4); }
 .flykit-term-body { flex: 1; min-height: 0; display: flex; padding: 10px 12px 12px; background: var(--dsw-alias-bg-layer-1); }
 .flykit-term {
-  flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; padding: 12px 6px 10px 14px;
+  flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; padding: 0; overflow: hidden;
   background: #1b1e24; border-radius: 12px;
   border: 0.5px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
-.flykit-term .xterm { height: 100%; }
+.flykit-term .xterm { height: 100%; box-sizing: border-box; padding: 12px 6px 10px 14px; }   /* padding lives on .xterm: the fit addon subtracts it when counting rows */
 .flykit-term .xterm-viewport { background: transparent !important; border-radius: 10px; }
 .flykit-term .xterm-viewport::-webkit-scrollbar { width: 8px; }
 .flykit-term .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
@@ -172,7 +172,7 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 /* Every agent at once: two columns, rows as needed, each card tall enough for a usable fit(). */
 .flykit-term-grid {
   flex: 1; min-height: 0; overflow: auto; display: grid; gap: 10px; padding: 10px 12px 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(170px, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(280px, 1fr);
   background: var(--dsw-alias-bg-layer-1);
 }
 .flykit-term-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 0; }

@@ -70,7 +70,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
         ))}
         <div className="flykit-term-actions">
           {canGrid && (
-            <button type="button" className="flykit-term-add" title={showGrid ? 'Show only the focused agent' : 'Show every agent at once'} aria-label="Grid view" aria-pressed={showGrid} onClick={() => setPanel({ grid: !grid })}>
+            <button type="button" className="flykit-term-add flykit-term-gridbtn" title={showGrid ? 'Show only the focused agent' : 'Show every agent at once'} aria-label="Grid view" aria-pressed={showGrid} onClick={() => setPanel({ grid: !grid })}>
               <GridIcon />
             </button>
           )}
