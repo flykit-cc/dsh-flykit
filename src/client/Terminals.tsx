@@ -91,7 +91,12 @@ export function Terminals({ sessionId }: { sessionId: string }) {
   const close = (id: string) => {
     fetch(api('terms', sessionId, { id }), { method: 'DELETE' }).then(() => refresh()).catch(() => {})
   }
-  const toggleMute = (id: string) => setMuted(m => { const n = new Set(m); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleMute = (id: string) => setMuted(m => {
+    const n = new Set(m)
+    if (n.has(id)) { n.delete(id); chime() }   // turning sound on plays it once, so you know what to listen for
+    else n.add(id)
+    return n
+  })
 
   // One terminal has nothing to stage beside, so the toggle stays hidden and the stage stays off.
   const canStage = terms.length > 1
