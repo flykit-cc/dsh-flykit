@@ -4,12 +4,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 // Type-only: declares `ctx.sessions` on the host Context.
 import type {} from '@deepseek-ai/dsh-session'
+// Type-only: declares `ctx.tools` on the host Context.
+import type {} from '@deepseek-ai/dsh-tools'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { gitStatus } from './git.js'
 import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
 import { claudeUsage } from './claude-usage.js'
+import { agentTools } from './agent-tools.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -65,7 +68,7 @@ export function apply(ctx: Context): void {
     const id = url.searchParams.get('id')
     if (req.method === 'POST') {
       const q = url.searchParams
-      const t = terms.open(q.get('sessionId')!, cwd, q.get('agent') ?? 'shell', Number(q.get('cols')) || 120, Number(q.get('rows')) || 32)
+      const t = terms.open(q.get('sessionId')!, cwd, q.get('agent') ?? 'shell', Number(q.get('cols')) || 120, Number(q.get('rows')) || 32, q.get('name') ?? undefined)
       return t === null ? null : terms.info(t)
     }
     if (req.method === 'DELETE') return terms.close(id ?? '') ? { ok: true } : null
@@ -100,6 +103,11 @@ export function apply(ctx: Context): void {
     },
   }), 'flykit: /api/flykit/term/stream')
   ctx.effect(() => () => terms.closeAll(), 'flykit: terminals')
+  // Model-facing half of the same terminals. Deferred rather than in `inject` so a
+  // bundle without the tool registry still gets the panel and the status line.
+  ctx.inject(['tools'], toolCtx => {
+    for (const tool of agentTools()) toolCtx.effect(() => toolCtx.tools.register(tool), `flykit: tool ${tool.name}`)
+  })
   // Subscription usage of the Claude Code login on this machine; no session needed, token stays host-side.
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

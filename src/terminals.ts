@@ -16,18 +16,22 @@ export interface Term {
   id: string
   sessionId: string
   agent: string
+  /** Tab label; the agent's default unless the caller named this terminal. */
+  name: string
   pty: IPty
   exited: number | null
   buffer: string
+  /** Characters ever written to `buffer`, so a reader can resume where it left off. */
+  seq: number
   listeners: Set<(chunk: string) => void>
 }
 
-export interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null }
+export interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; seq: number }
 
 const terms = new Map<string, Term>()
 
 export function info(t: Term): TermInfo {
-  return { id: t.id, agent: t.agent, label: AGENTS[t.agent]?.label ?? t.agent, pid: t.pty.pid, exited: t.exited }
+  return { id: t.id, agent: t.agent, label: t.name, pid: t.pty.pid, exited: t.exited, seq: t.seq }
 }
 
 export function list(sessionId: string): TermInfo[] {
@@ -36,7 +40,7 @@ export function list(sessionId: string): TermInfo[] {
 
 export function get(id: string): Term | undefined { return terms.get(id) }
 
-export function open(sessionId: string, cwd: string, agent: string, cols: number, rows: number): Term | null {
+export function open(sessionId: string, cwd: string, agent: string, cols: number, rows: number, name?: string): Term | null {
   const spec = AGENTS[agent]
   if (spec === undefined) return null
   const [cmd, ...args] = spec.argv
@@ -44,19 +48,28 @@ export function open(sessionId: string, cwd: string, agent: string, cols: number
     name: 'xterm-256color', cols, rows, cwd,
     env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', FLYKIT_SESSION: sessionId } as Record<string, string>,
   })
-  const t: Term = { id: randomUUID(), sessionId, agent, pty, exited: null, buffer: '', listeners: new Set() }
-  pty.onData(chunk => {
+  const t: Term = {
+    id: randomUUID(), sessionId, agent, name: name?.trim() || spec.label,
+    pty, exited: null, buffer: '', seq: 0, listeners: new Set(),
+  }
+  const push = (chunk: string) => {
     t.buffer = (t.buffer + chunk).slice(-SCROLLBACK)
+    t.seq += chunk.length
     for (const l of t.listeners) l(chunk)
-  })
+  }
+  pty.onData(push)
   pty.onExit(({ exitCode }) => {
     t.exited = exitCode
-    const note = `\r\n\x1b[2m[exited ${exitCode}]\x1b[0m\r\n`
-    t.buffer = (t.buffer + note).slice(-SCROLLBACK)
-    for (const l of t.listeners) l(note)
+    push(`\r\n\x1b[2m[exited ${exitCode}]\x1b[0m\r\n`)
   })
   terms.set(t.id, t)
   return t
+}
+
+/** The slice of `buffer` written after `sinceSeq`; scrollback loss silently clamps. */
+export function since(t: Term, sinceSeq: number): string {
+  const oldest = t.seq - t.buffer.length
+  return t.buffer.slice(Math.max(0, sinceSeq - oldest))
 }
 
 export function close(id: string): boolean {

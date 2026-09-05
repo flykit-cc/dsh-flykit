@@ -36,7 +36,7 @@
     "build": "tsdown && tsc -p tsconfig.json && tsc -p tsconfig.client.json --emitDeclarationOnly",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "test": "npm run build && node scripts/verify-client-loader.mjs && node --test src/client/segments.test.ts src/git.test.ts src/files.test.ts",
+    "test": "npm run build && node scripts/verify-client-loader.mjs && node --test src/client/segments.test.ts src/git.test.ts src/files.test.ts src/term-io.test.ts",
     "prepare": "npm run build"
   },
   "repository": {
@@ -79,6 +79,7 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.2-rc.1",
     "@deepseek-ai/dsh-session": "0.1.2-rc.1",
     "@deepseek-ai/dsh-token-meter": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "@deepseek-ai/dsh-client-ui-model-selection": "0.1.2-rc.1"
@@ -129,7 +130,8 @@
     "@deepseek-ai/dsh-client-ui-primitives": {
       "optional": true
     },
-    "@deepseek-ai/dsh-client-ui-model-selection": {
+    "@deepseek-ai/dsh-client-ui-model-selection": { "optional": true },
+    "@deepseek-ai/dsh-tools": {
       "optional": true
     }
   },
@@ -159,6 +161,7 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.2-rc.1",
     "@deepseek-ai/dsh-session": "0.1.2-rc.1",
     "@deepseek-ai/dsh-token-meter": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
     "@lezer/highlight": "^1.2.3",
     "@types/node": "^22.20.0",
     "@types/react": "^18",
@@ -171,6 +174,7 @@
     "typescript": "6.0.3"
   },
   "dependencies": {
+    "@xterm/headless": "^6.0.0",
     "node-pty": "^1.2.0-beta.15"
   }
 }

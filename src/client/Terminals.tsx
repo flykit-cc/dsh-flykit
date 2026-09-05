@@ -20,6 +20,9 @@ function labelFor(terms: TermInfo[], t: TermInfo): string {
   return same.length > 1 ? `${t.label} ${same.indexOf(t) + 1}` : t.label
 }
 
+/** Identity of a terminal list, so a poll that changed nothing does not re-render. */
+const sig = (l: TermInfo[]) => l.map(t => `${t.id}:${t.label}:${t.exited}`).join('|')
+
 export function Terminals({ sessionId }: { sessionId: string }) {
   const { grid } = usePanel()
   const [terms, setTerms] = useState<TermInfo[]>([])
@@ -29,10 +32,16 @@ export function Terminals({ sessionId }: { sessionId: string }) {
   const refresh = () => fetch(api('terms', sessionId), { cache: 'no-store' })
     .then(r => r.json()).then((j: { terms?: TermInfo[] }) => {
       const list = j.terms ?? []
-      setTerms(list)
+      setTerms(prev => sig(prev) === sig(list) ? prev : list)
       setActive(a => (a !== null && list.some(t => t.id === a)) ? a : (list[0]?.id ?? null))
     }).catch(() => {})
-  useEffect(() => { void refresh() }, [sessionId])
+  // Polled, not fetched once: the DSH agent opens and closes terminals through
+  // the flykit_agent_* tools, and the panel has to show what it did.
+  useEffect(() => {
+    void refresh()
+    const poll = setInterval(() => void refresh(), 2_000)
+    return () => clearInterval(poll)
+  }, [sessionId])
 
   const open = (agent: string) => {
     setPicking(false)
