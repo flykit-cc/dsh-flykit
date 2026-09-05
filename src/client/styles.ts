@@ -90,32 +90,44 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-notice button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .flykit-terms { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.flykit-term-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
-.flykit-term-tab {
-  display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 8px; cursor: pointer;
-  font-size: 12px; color: var(--dsw-alias-label-secondary); white-space: nowrap;
+.flykit-term-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
+.flykit-term-card {
+  display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 6px 0 10px; border-radius: 9px; cursor: pointer;
+  font-size: 12.5px; font-weight: 500; color: var(--dsw-alias-label-secondary); white-space: nowrap;
+  border: 0.5px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-1);
+  transition: background var(--ds-transition-duration) var(--ds-ease-in-out), border-color var(--ds-transition-duration) var(--ds-ease-in-out);
 }
-.flykit-term-tab:hover { background: var(--dsw-alias-interactive-bg-hover); }
-.flykit-term-tab[aria-selected="true"] { background: var(--dsw-alias-interactive-bg-active); color: var(--dsw-alias-label-primary); }
-.flykit-term-tab button { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
-.flykit-term-tab button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
-.flykit-term-live, .flykit-term-dead { width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-success-primary); }
-.flykit-term-dead { background: var(--dsw-alias-label-dimmed); }
+.flykit-term-card:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-card[aria-selected="true"] { color: var(--dsw-alias-label-primary); border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-bg-base); box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary) inset; }
+.flykit-term-card[data-dead] { opacity: 0.6; }
+.flykit-term-card svg { flex: none; }
+.flykit-term-state { width: 7px; height: 7px; border-radius: 50%; background: var(--dsw-alias-state-success-primary); box-shadow: 0 0 0 2px var(--dsw-alias-state-success-tertiary); }
+.flykit-term-card[data-dead] .flykit-term-state { background: var(--dsw-alias-label-dimmed); box-shadow: none; }
+.flykit-term-card button { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-term-card button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .flykit-term-new { position: relative; margin-left: auto; }
 .flykit-term-add {
-  all: unset; cursor: pointer; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
-  color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l4);
+  all: unset; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1;
+  color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
 }
 .flykit-term-add:hover, .flykit-term-add[aria-expanded="true"] { background: var(--dsw-alias-interactive-bg-hover); }
 .flykit-menu {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 140px; margin: 0; padding: 4px; list-style: none;
-  background: var(--dsw-alias-bg-layer-1); border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; min-width: 160px; margin: 0; padding: 4px; list-style: none;
+  background: var(--dsw-alias-bg-layer-1); border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
 }
-.flykit-menu button { all: unset; display: block; box-sizing: border-box; width: 100%; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--dsw-alias-label-primary); }
+.flykit-menu button { all: unset; display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--dsw-alias-label-primary); }
 .flykit-menu button:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--dsw-alias-label-tertiary); }
+.flykit-term-hero p { margin: 0; }
+.flykit-term-hero-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.flykit-term-hero-row button {
+  all: unset; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
+}
+.flykit-term-hero-row button:hover { background: var(--dsw-alias-interactive-bg-hover); border-color: var(--dsw-alias-border-l4); }
 .flykit-term-body { flex: 1; min-height: 0; display: flex; }
-.flykit-term { flex: 1; min-width: 0; min-height: 0; padding: 6px 0 6px 8px; background: var(--dsw-alias-bg-base); }
+.flykit-term { flex: 1; min-width: 0; min-height: 0; padding: 12px 4px 10px 14px; background: var(--dsw-alias-bg-base); }
 .flykit-term .xterm { height: 100%; }
 .flykit-term .xterm-viewport { background: transparent !important; }
 

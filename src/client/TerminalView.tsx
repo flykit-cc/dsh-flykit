@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { api } from './api.ts'
+import { onThemeChange, terminalTheme } from './term-theme.ts'
 
 /** One xterm bound to one host PTY: output over SSE, input and size over small POSTs. */
 export function TerminalView({ sessionId, id }: { sessionId: string; id: string }) {
@@ -10,9 +11,9 @@ export function TerminalView({ sessionId, id }: { sessionId: string; id: string 
   useEffect(() => {
     const el = host.current!
     const term = new Terminal({
-      cursorBlink: true, fontSize: 13, lineHeight: 1.2, scrollback: 5000, allowProposedApi: true,
+      cursorBlink: true, fontSize: 12.5, lineHeight: 1.35, scrollback: 5000, allowProposedApi: true,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-      theme: themeFromShell(),
+      theme: terminalTheme(),
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
@@ -50,21 +51,10 @@ export function TerminalView({ sessionId, id }: { sessionId: string; id: string 
       term.write(chunk)
     }
     term.focus()
+    const stopTheme = onThemeChange(() => { term.options.theme = terminalTheme() })
 
-    return () => { es.close(); ro.disconnect(); input.dispose(); term.dispose() }
+    return () => { stopTheme(); es.close(); ro.disconnect(); input.dispose(); term.dispose() }
   }, [sessionId, id])
 
   return <div ref={host} className="flykit-term" />
-}
-
-/** Read the shell's tokens once per mount so the terminal follows light/dark. */
-function themeFromShell() {
-  const css = getComputedStyle(document.body)
-  const v = (name: string) => css.getPropertyValue(name).trim() || undefined
-  return {
-    background: v('--dsw-alias-bg-base'),
-    foreground: v('--dsw-alias-label-primary'),
-    cursor: v('--dsw-alias-label-primary'),
-    selectionBackground: v('--dsw-alias-interactive-bg-active'),
-  }
 }

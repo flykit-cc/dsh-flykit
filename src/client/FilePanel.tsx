@@ -142,7 +142,7 @@ function ResizeHandle() {
 }
 
 /** Root-overlay entry: the right column, rendered only while the toggle has it open. */
-const TABS = [{ id: 'files', label: 'Files' }, { id: 'terms', label: 'Agents' }] as const
+const TABS = [{ id: 'files', label: 'Explorer' }, { id: 'terms', label: 'Agents' }] as const
 
 export function FilePanel() {
   const { open, sessionId } = usePanel()

@@ -119,3 +119,13 @@ export function EyeIcon() {
     </svg>
   )
 }
+
+/** Agent glyphs for the cards: a spark for Claude, pi, a prompt chevron for Codex, a prompt for shells. */
+export function AgentGlyph({ agent }: { agent: string }) {
+  switch (agent) {
+    case 'claude': return <svg {...svg} aria-hidden style={{ color: '#d97757' }}><path d="M8 1.5l1.6 4.4L14 7.5l-4.4 1.6L8 13.5 6.4 9.1 2 7.5l4.4-1.6z" fill="currentColor" stroke="none" /></svg>
+    case 'pi': return <svg {...svg} aria-hidden style={{ color: '#4fb3bf' }}><path d="M2.5 4.5h11 M5 4.5v8 M11 4.5v6.5a1.5 1.5 0 003 0" strokeWidth={1.8} /></svg>
+    case 'codex': return <svg {...svg} aria-hidden style={{ color: '#10a37f' }}><path d="M3 4l4 4-4 4 M8.5 12h4.5" strokeWidth={1.8} /></svg>
+    default: return <svg {...svg} aria-hidden style={{ color: 'var(--dsw-alias-label-secondary)' }}><rect x="1.5" y="2.5" width="13" height="11" rx="2" /><path d="M4.5 6l2 2-2 2 M8 10h3" /></svg>
+  }
+}
