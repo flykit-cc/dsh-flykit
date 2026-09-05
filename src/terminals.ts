@@ -33,6 +33,8 @@ export interface Term {
   /** Tab label; the agent's default unless the caller named this terminal. */
   name: string
   pty: IPty
+  cols: number
+  rows: number
   exited: number | null
   buffer: string
   /** Characters ever written to `buffer`, so a reader can resume where it left off. */
@@ -64,7 +66,7 @@ export function open(sessionId: string, cwd: string, agent: string, cols: number
   })
   const t: Term = {
     id: randomUUID(), sessionId, agent, name: name?.trim() || spec.label,
-    pty, exited: null, buffer: '', seq: 0, listeners: new Set(),
+    pty, cols, rows, exited: null, buffer: '', seq: 0, listeners: new Set(),
   }
   const push = (chunk: string) => {
     t.buffer = (t.buffer + chunk).slice(-SCROLLBACK)

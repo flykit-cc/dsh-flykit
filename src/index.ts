@@ -13,6 +13,7 @@ import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
 import { claudeUsage } from './claude-usage.js'
 import { fetchOpenRouter } from './catalog-sync.js'
+import { screenText } from './term-io.js'
 // Type-only: declares `ctx.settings`.
 import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
@@ -87,8 +88,17 @@ export function apply(ctx: Context): void {
     const t = terms.get(url.searchParams.get('id') ?? '')
     const cols = Number(url.searchParams.get('cols')), rows = Number(url.searchParams.get('rows'))
     if (t === undefined || t.exited !== null || !(cols > 1 && rows > 1)) return null
-    t.pty.resize(Math.min(cols, 500), Math.min(rows, 200))
+    t.cols = Math.min(cols, 500); t.rows = Math.min(rows, 200)
+    t.pty.resize(t.cols, t.rows)
     return { ok: true }
+  })
+  // Plain-text tail of a terminal's screen, for the thumbnails: rendered host-side, no PTY resize.
+  route('/api/flykit/term/screen', async (_cwd, url) => {
+    const t = terms.get(url.searchParams.get('id') ?? '')
+    if (t === undefined) return null
+    const lines = (await screenText(t.buffer, t.cols, t.rows)).split('\n')
+    while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+    return { lines: lines.slice(-14), seq: t.seq, exited: t.exited }
   })
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

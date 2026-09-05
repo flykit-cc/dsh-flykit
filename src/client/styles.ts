@@ -157,7 +157,80 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
   color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
 }
 .flykit-term-hero-row button:hover { background: var(--dsw-alias-interactive-bg-hover); border-color: var(--dsw-alias-border-l4); }
-.flykit-term-body { flex: 1; min-height: 0; display: flex; padding: 10px 12px 12px; background: var(--dsw-alias-bg-layer-1); }
+.flykit-term-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; background: var(--dsw-alias-bg-layer-1); }
+
+/* Stage: the focused terminal stays big; the others ride below as live thumbnails. */
+.flykit-stage { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.flykit-thumb {
+  flex: 0 0 220px; height: 150px; display: flex; flex-direction: column; min-width: 0; cursor: pointer;
+  background: #1b1e24; border-radius: 10px; overflow: hidden;
+  border: 0.5px solid rgba(255, 255, 255, 0.08); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.14);
+  transition: transform var(--ds-transition-duration) var(--ds-ease-in-out), box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+.flykit-thumb:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.22); }
+.flykit-thumb[data-dead] { opacity: 0.55; }
+.flykit-thumb-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 11.5px; font-weight: 500; color: #c8ccd4; background: rgba(255, 255, 255, 0.04); border-bottom: 0.5px solid rgba(255, 255, 255, 0.06); }
+.flykit-thumb-head span:first-of-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.flykit-thumb-head svg { flex: none; }
+.flykit-thumb-screen {
+  flex: 1; min-height: 0; margin: 0; padding: 6px 8px; overflow: hidden; white-space: pre; color: #9aa0ab;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; line-height: 10px;
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+}
+
+/* Answer alert: three soft pulses in the brand colour, then a quiet unread dot until you look. */
+@keyframes flykit-ring { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--dsw-alias-state-success-tertiary), 0 0 12px 2px var(--dsw-alias-state-success-primary); } }
+.flykit-term-card[data-ring], .flykit-thumb[data-ring] { animation: flykit-ring 0.85s ease-in-out 3; }
+.flykit-term-card[data-unread] .flykit-term-name::after, .flykit-thumb[data-unread] .flykit-thumb-head span:first-of-type::after {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--dsw-alias-brand-primary);
+}
+.flykit-term-bell { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-term-bell:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-term-bell[aria-pressed="false"] { color: var(--dsw-alias-label-dimmed); }
+.flykit-term-card[aria-selected="true"] .flykit-term-bell[aria-pressed="true"] { color: var(--dsw-alias-label-secondary); }
+.flykit-term {
+  flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; padding: 0; overflow: hidden;
+  background: #1b1e24; border-radius: 12px;
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.flykit-term .xterm { height: 100%; box-sizing: border-box; padding: 12px 6px 10px 14px; }   /* padding lives on .xterm: the fit addon subtracts it when counting rows */
+.flykit-term .xterm-viewport { background: transparent !important; border-radius: 10px; }
+.flykit-term .xterm-viewport::-webkit-scrollbar { width: 8px; }
+.flykit-term .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
+
+/* Every agent at once: two columns, rows as needed, each card tall enough for a usable fit(). */
+.flykit-term-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; background: var(--dsw-alias-bg-layer-1); }
+
+/* Stage: the focused terminal stays big; the others ride below as live thumbnails. */
+.flykit-stage { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.flykit-thumb {
+  flex: 0 0 220px; height: 150px; display: flex; flex-direction: column; min-width: 0; cursor: pointer;
+  background: #1b1e24; border-radius: 10px; overflow: hidden;
+  border: 0.5px solid rgba(255, 255, 255, 0.08); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.14);
+  transition: transform var(--ds-transition-duration) var(--ds-ease-in-out), box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+.flykit-thumb:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.22); }
+.flykit-thumb[data-dead] { opacity: 0.55; }
+.flykit-thumb-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 11.5px; font-weight: 500; color: #c8ccd4; background: rgba(255, 255, 255, 0.04); border-bottom: 0.5px solid rgba(255, 255, 255, 0.06); }
+.flykit-thumb-head span:first-of-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.flykit-thumb-head svg { flex: none; }
+.flykit-thumb-screen {
+  flex: 1; min-height: 0; margin: 0; padding: 6px 8px; overflow: hidden; white-space: pre; color: #9aa0ab;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; line-height: 10px;
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+}
+
+/* Answer alert: three soft pulses in the brand colour, then a quiet unread dot until you look. */
+@keyframes flykit-ring { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--dsw-alias-state-success-tertiary), 0 0 12px 2px var(--dsw-alias-state-success-primary); } }
+.flykit-term-card[data-ring], .flykit-thumb[data-ring] { animation: flykit-ring 0.85s ease-in-out 3; }
+.flykit-term-card[data-unread] .flykit-term-name::after, .flykit-thumb[data-unread] .flykit-thumb-head span:first-of-type::after {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--dsw-alias-brand-primary);
+}
+.flykit-term-bell { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-term-bell:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-term-bell[aria-pressed="false"] { color: var(--dsw-alias-label-dimmed); }
+.flykit-term-card[aria-selected="true"] .flykit-term-bell[aria-pressed="true"] { color: var(--dsw-alias-label-secondary); }
 .flykit-term {
   flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; padding: 0; overflow: hidden;
   background: #1b1e24; border-radius: 12px;

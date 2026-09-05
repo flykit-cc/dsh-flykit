@@ -40,13 +40,10 @@ export function FilePanel() {
     <aside className="flykit-panel" aria-label="flykit panel" data-max={max || undefined}>
       {!max && <ResizeHandle />}
       <div className="flykit-panel-head">
-        {split
-          ? <span className="flykit-head-title">flykit</span>
-          : (
-            <div className="flykit-tabs" role="tablist">
-              {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
-            </div>
-          )}
+        <div className="flykit-tabs" role="tablist" data-split={split || undefined}>
+          {/* Split shows both views, so both names read as active; a click still picks the one to focus when split ends. */}
+          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={split || tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
+        </div>
         <div className="flykit-head-actions">
           <button
             type="button"
