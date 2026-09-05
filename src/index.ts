@@ -8,6 +8,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { gitStatus } from './git.js'
 import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
+import * as terms from './terminals.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -58,6 +59,46 @@ export function apply(ctx: Context): void {
     const text = await readText(cwd, path)
     return text === null ? null : { text }
   })
+  // Terminals: open / list / input / resize / close as JSON, output as one SSE stream per attach.
+  route('/api/flykit/terms', async (cwd, url, req) => {
+    const id = url.searchParams.get('id')
+    if (req.method === 'POST') {
+      const q = url.searchParams
+      const t = terms.open(q.get('sessionId')!, cwd, q.get('agent') ?? 'shell', Number(q.get('cols')) || 120, Number(q.get('rows')) || 32)
+      return t === null ? null : terms.info(t)
+    }
+    if (req.method === 'DELETE') return terms.close(id ?? '') ? { ok: true } : null
+    return { terms: terms.list(url.searchParams.get('sessionId')!) }
+  })
+  route('/api/flykit/term/input', async (_cwd, url, req) => {
+    const t = terms.get(url.searchParams.get('id') ?? '')
+    if (t === undefined || t.exited !== null) return null
+    t.pty.write(await body(req))
+    return { ok: true }
+  })
+  route('/api/flykit/term/resize', async (_cwd, url) => {
+    const t = terms.get(url.searchParams.get('id') ?? '')
+    const cols = Number(url.searchParams.get('cols')), rows = Number(url.searchParams.get('rows'))
+    if (t === undefined || t.exited !== null || !(cols > 1 && rows > 1)) return null
+    t.pty.resize(Math.min(cols, 500), Math.min(rows, 200))
+    return { ok: true }
+  })
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/api/flykit/term/stream',
+    handler: (req, res) => {
+      const url = new URL(req.url ?? '', 'http://x')
+      const t = terms.get(url.searchParams.get('id') ?? '')
+      if (t === undefined || cwdOf(url) === undefined) { res.statusCode = 404; res.end(); return }
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', 'connection': 'keep-alive', 'x-accel-buffering': 'no' })
+      const send = (chunk: string) => res.write(`data: ${JSON.stringify(chunk)}\n\n`)
+      send(t.buffer)
+      t.listeners.add(send)
+      const ping = setInterval(() => res.write(': ping\n\n'), 25_000)
+      req.on('close', () => { clearInterval(ping); t.listeners.delete(send) })
+    },
+  }), 'flykit: /api/flykit/term/stream')
+  ctx.effect(() => () => terms.closeAll(), 'flykit: terminals')
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/api/flykit/watch',

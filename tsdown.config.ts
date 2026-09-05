@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'tsdown'
 
 const PACKAGE_NAME = 'dsh-flykit'
@@ -14,6 +15,8 @@ export default defineConfig({
   dts: false,
   clean: false,
   sourcemap: true,
+  // xterm ships a stylesheet; the shell serves no plugin CSS, so it rides along as a string.
+  define: { __XTERM_CSS__: JSON.stringify(readFileSync('node_modules/@xterm/xterm/css/xterm.css', 'utf8')) },
   external: [
     'react',
     'react/jsx-runtime',

@@ -2,7 +2,7 @@ const STYLE_ID = 'dsh-flykit'
 
 // Class names in the shell bundle are hashed, so every rule below anchors on
 // semantic attributes or on flykit's own classes. Colours are --dsw-* tokens only.
-const css = `
+const css = __XTERM_CSS__ + `
 button[aria-haspopup="dialog"] svg circle[transform^="rotate(-90"] { stroke: var(--flykit-ring, var(--dsw-alias-label-tertiary)); }
 
 /* The frame's grid is an inline style; an !important width beats it and the
@@ -88,6 +88,36 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
   color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base);
 }
 .flykit-notice button:hover { background: var(--dsw-alias-interactive-bg-hover); }
+
+.flykit-terms { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.flykit-term-tabs { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); overflow-x: auto; }
+.flykit-term-tab {
+  display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 12px; color: var(--dsw-alias-label-secondary); white-space: nowrap;
+}
+.flykit-term-tab:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-tab[aria-selected="true"] { background: var(--dsw-alias-interactive-bg-active); color: var(--dsw-alias-label-primary); }
+.flykit-term-tab button { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-term-tab button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-term-live, .flykit-term-dead { width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-success-primary); }
+.flykit-term-dead { background: var(--dsw-alias-label-dimmed); }
+.flykit-term-new { position: relative; margin-left: auto; }
+.flykit-term-add {
+  all: unset; cursor: pointer; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l4);
+}
+.flykit-term-add:hover, .flykit-term-add[aria-expanded="true"] { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 140px; margin: 0; padding: 4px; list-style: none;
+  background: var(--dsw-alias-bg-layer-1); border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.flykit-menu button { all: unset; display: block; box-sizing: border-box; width: 100%; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--dsw-alias-label-primary); }
+.flykit-menu button:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-body { flex: 1; min-height: 0; display: flex; }
+.flykit-term { flex: 1; min-width: 0; min-height: 0; padding: 6px 0 6px 8px; background: var(--dsw-alias-bg-base); }
+.flykit-term .xterm { height: 100%; }
+.flykit-term .xterm-viewport { background: transparent !important; }
 
 .flykit-editor-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-editor-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }

@@ -4,9 +4,8 @@ import { FileTree } from './FileTree.tsx'
 import { CloseIcon, EyeIcon } from './icons.tsx'
 import { Preview, previewKind } from './Preview.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
-
-const api = (route: string, sessionId: string, path = '') =>
-  `/api/flykit/${route}?sessionId=${encodeURIComponent(sessionId)}${path === '' ? '' : `&path=${encodeURIComponent(path)}`}`
+import { Terminals } from './Terminals.tsx'
+import { api } from './api.ts'
 
 function useFiles(sessionId: string, tick: number): string[] {
   const [files, setFiles] = useState<string[]>([])
@@ -39,7 +38,7 @@ function useDoc(sessionId: string, path: string | null) {
   useEffect(() => {
     if (path === null) { setDoc(null); return }
     const ac = new AbortController()
-    fetch(api('file', sessionId, path), { cache: 'no-store', signal: ac.signal })
+    fetch(api('file', sessionId, { path }), { cache: 'no-store', signal: ac.signal })
       .then(r => r.json())
       .then((j: { text?: string; error?: string }) => {
         setDoc({ path, text: j.text ?? '', saved: j.text ?? '', error: j.text === undefined ? (j.error ?? 'cannot open') : undefined })
@@ -59,7 +58,7 @@ function useDoc(sessionId: string, path: string | null) {
   const save = () => {
     if (doc === null || doc.text === doc.saved) return
     const text = doc.text
-    fetch(api('file', sessionId, doc.path), { method: 'PUT', body: text })
+    fetch(api('file', sessionId, { path: doc.path }), { method: 'PUT', body: text })
       .then(r => { if (r.ok) setDoc(d => d === null || d.path !== doc.path ? d : { ...d, saved: text }) })
       .catch(() => {})
   }
@@ -143,20 +142,23 @@ function ResizeHandle() {
 }
 
 /** Root-overlay entry: the right column, rendered only while the toggle has it open. */
+const TABS = [{ id: 'files', label: 'Files' }, { id: 'terms', label: 'Agents' }] as const
+
 export function FilePanel() {
   const { open, sessionId } = usePanel()
+  const [tab, setTab] = useState<typeof TABS[number]['id']>('files')
   if (!open || sessionId === null) return null
   return (
     <aside className="flykit-panel" aria-label="flykit panel">
       <ResizeHandle />
       <div className="flykit-panel-head">
         <div className="flykit-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected>Files</button>
+          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
         </div>
         <button type="button" className="flykit-close" aria-label="Close panel" onClick={() => setPanel({ open: false })}><CloseIcon /></button>
       </div>
       <div className="flykit-panel-body">
-        <FilesTab sessionId={sessionId} />
+        {tab === 'files' ? <FilesTab sessionId={sessionId} /> : <Terminals sessionId={sessionId} />}
       </div>
     </aside>
   )
