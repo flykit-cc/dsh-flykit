@@ -49,6 +49,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 }
 .flykit-tabs button[aria-selected="true"] { color: var(--dsw-alias-label-primary); border-bottom-color: var(--dsw-alias-brand-primary); }
 .flykit-close, .flykit-save {
+  padding: 0; line-height: 0;
   display: grid; place-items: center; flex: none; width: 28px; height: 28px; margin-bottom: 6px;
   border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;
 }
@@ -87,7 +88,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-editor .cm-editor { height: 100%; }
 .flykit-empty { margin: 16px; color: var(--dsw-alias-label-tertiary); }
 .flykit-iconbtn {
-  display: grid; place-items: center; flex: none; width: 24px; height: 24px;
+  display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; line-height: 0;
   border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;
 }
 .flykit-iconbtn:hover { background: var(--dsw-alias-interactive-bg-hover); }
