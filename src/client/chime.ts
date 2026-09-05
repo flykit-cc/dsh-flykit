@@ -1,4 +1,4 @@
-/** A short two-note chime from the Web Audio API: no asset, no network. */
+/** A soft two-note chime from the Web Audio API: no asset, no network. */
 let ctx: AudioContext | null = null
 
 /**
@@ -16,23 +16,43 @@ if (typeof document !== 'undefined') {
   for (const ev of ['pointerdown', 'keydown'] as const) document.addEventListener(ev, unlock, { capture: true, passive: true })
 }
 
+// A falling fifth reads as "finished" rather than "look at me". Sine partials
+// through a low-pass have no bite, and the peak gain is deliberately near the
+// floor of audible — this fires while you are reading something else.
+const NOTES = [
+  { hz: 587.33, at: 0 },      // D5
+  { hz: 392.00, at: 0.13 },   // G4
+] as const
+const PEAK = 0.045
+const TAIL = 0.9
+
 export function chime(): void {
   try {
     unlock()
     if (ctx === null) return
     const t0 = ctx.currentTime
-    for (const [i, freq] of [[0, 659.25], [1, 987.77]] as const) {
+
+    // One filter for both notes: rolls off the harsh upper harmonics that made
+    // the old triangle wave read as an alarm.
+    const tone = ctx.createBiquadFilter()
+    tone.type = 'lowpass'
+    tone.frequency.value = 1_400
+    tone.Q.value = 0.5
+    tone.connect(ctx.destination)
+
+    for (const { hz, at } of NOTES) {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      osc.type = 'triangle'
-      osc.frequency.value = freq
-      const start = t0 + i * 0.16
+      osc.type = 'sine'
+      osc.frequency.value = hz
+      const start = t0 + at
+      // A 40ms fade in, not an instant onset: a hard edge is what clicks.
       gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.exponentialRampToValueAtTime(0.28, start + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.45)
-      osc.connect(gain).connect(ctx.destination)
+      gain.gain.exponentialRampToValueAtTime(PEAK, start + 0.04)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + TAIL)
+      osc.connect(gain).connect(tone)
       osc.start(start)
-      osc.stop(start + 0.5)
+      osc.stop(start + TAIL + 0.05)
     }
   } catch { /* no audio device: the blink still shows */ }
 }

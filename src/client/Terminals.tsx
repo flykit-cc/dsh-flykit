@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './api.ts'
 import { AgentGlyph, CloseIcon, GridIcon } from './icons.tsx'
 import { BellIcon } from './BellIcon.tsx'
+import { newActivity, step, type Activity } from './answer-detect.ts'
 import { chime } from './chime.ts'
 import { setPanel, usePanel } from './panel-store.ts'
 import { TerminalView } from './TerminalView.tsx'
@@ -18,8 +19,6 @@ const AGENTS = [
 ]
 
 /** An answer is a burst of at least this much output, then two quiet polls. */
-const ANSWER_MIN_CHARS = 200
-const QUIET_POLLS = 2
 const RING_MS = 2_600
 
 /** "Claude Code 2" once more than one of that agent is running. */
@@ -30,8 +29,6 @@ function labelFor(terms: TermInfo[], t: TermInfo): string {
 
 /** Identity of a terminal list, so a poll that changed nothing does not re-render. */
 const sig = (l: TermInfo[]) => l.map(t => `${t.id}:${t.label}:${t.exited}`).join('|')
-
-interface Activity { seq: number; burst: number; quiet: number }
 
 export function Terminals({ sessionId }: { sessionId: string }) {
   const { grid, open: panelOpen } = usePanel()
@@ -45,24 +42,24 @@ export function Terminals({ sessionId }: { sessionId: string }) {
   const latest = useRef({ active, muted, panelOpen })
   latest.current = { active, muted, panelOpen }
 
-  /** Output burst then silence = the agent answered. Ring every time; the unread dot only marks agents you are not on. */
+  /** Ring when an agent answers; the unread dot only marks agents you are not on. */
   const observe = (list: TermInfo[]) => {
+    // Closed terminals never come back, so drop their state with them.
+    if (activity.current.size > list.length) {
+      const live = new Set(list.map(t => t.id))
+      for (const id of activity.current.keys()) if (!live.has(id)) activity.current.delete(id)
+    }
     for (const t of list) {
-      const a = activity.current.get(t.id) ?? { seq: t.seq, burst: 0, quiet: 0 }
-      if (t.seq > a.seq) { a.burst += t.seq - a.seq; a.quiet = 0 }
-      else if (a.burst >= ANSWER_MIN_CHARS && ++a.quiet >= QUIET_POLLS) {
-        a.burst = 0; a.quiet = 0
-        const { active: cur, muted: m, panelOpen: open } = latest.current
-        if (!m.has(t.id)) {
-          chime()
-          setRinging(r => new Set(r).add(t.id))
-          setTimeout(() => setRinging(r => { const n = new Set(r); n.delete(t.id); return n }), RING_MS)
-          const watching = cur === t.id && open && document.visibilityState === 'visible'
-          if (!watching) setUnread(u => new Set(u).add(t.id))
-        }
-      }
-      a.seq = t.seq
+      const a = activity.current.get(t.id) ?? newActivity(t.seq)
       activity.current.set(t.id, a)
+      if (!step(a, t.seq)) continue
+      const { active: cur, muted: m, panelOpen: open } = latest.current
+      if (m.has(t.id)) continue
+      chime()
+      setRinging(r => new Set(r).add(t.id))
+      setTimeout(() => setRinging(r => { const n = new Set(r); n.delete(t.id); return n }), RING_MS)
+      const watching = cur === t.id && open && document.visibilityState === 'visible'
+      if (!watching) setUnread(u => new Set(u).add(t.id))
     }
   }
 

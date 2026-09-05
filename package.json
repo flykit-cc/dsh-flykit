@@ -36,7 +36,7 @@
     "build": "tsdown && tsc -p tsconfig.json && tsc -p tsconfig.client.json --emitDeclarationOnly",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "test": "npm run build && node scripts/verify-client-loader.mjs && node --test src/client/segments.test.ts src/client/editor-tabs.test.ts src/git.test.ts src/files.test.ts src/catalog-sync.test.ts src/term-io.test.ts",
+    "test": "npm run build && node scripts/verify-client-loader.mjs && node --test src/client/segments.test.ts src/client/editor-tabs.test.ts src/client/answer-detect.test.ts src/git.test.ts src/files.test.ts src/catalog-sync.test.ts src/term-io.test.ts",
     "prepare": "npm run build"
   },
   "repository": {
