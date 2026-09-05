@@ -90,7 +90,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-notice button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .flykit-terms { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.flykit-term-tabs { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); overflow-x: auto; }
+.flykit-term-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
 .flykit-term-tab {
   display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 8px; cursor: pointer;
   font-size: 12px; color: var(--dsw-alias-label-secondary); white-space: nowrap;
