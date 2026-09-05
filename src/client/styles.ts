@@ -13,6 +13,7 @@ body[data-flykit-panel] div:has(> [data-shell-overlay]) {
 }
 body[data-flykit-dragging] div:has(> [data-shell-overlay]) { transition: none; }
 body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
+body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 
 .flykit-toggle {
   display: inline-grid; place-items: center; width: 32px; height: 32px;
@@ -48,15 +49,35 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
   color: var(--dsw-alias-label-secondary); border-bottom: 2px solid transparent; margin-bottom: -0.5px;
 }
 .flykit-tabs button[aria-selected="true"] { color: var(--dsw-alias-label-primary); border-bottom-color: var(--dsw-alias-brand-primary); }
-.flykit-close, .flykit-save {
+.flykit-head-title { padding: 4px 0 10px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.flykit-head-actions { display: flex; align-items: center; gap: 2px; }
+.flykit-headbtn, .flykit-save {
   padding: 0; line-height: 0;
   display: grid; place-items: center; flex: none; width: 28px; height: 28px; margin-bottom: 6px;
   border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;
 }
-.flykit-close:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-headbtn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-headbtn[aria-pressed="true"] { color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-interactive-bg-active); }
 
 .flykit-panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.flykit-files-pane { flex: 0 0 auto; max-height: 38%; display: flex; flex-direction: column; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
+
+/* Two stacked panes plus a grab strip; the top pane holds a percentage, the rest fills. */
+.flykit-split { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.flykit-split-pane { flex: none; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.flykit-split-rest { flex: 1; height: auto; }
+.flykit-split-bar {
+  position: relative; flex: none; height: 7px; cursor: row-resize; touch-action: none; z-index: 2;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+.flykit-split-bar::after {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 32px; height: 4px; border-radius: 10px; box-sizing: border-box;
+  background: var(--dsw-alias-bg-layer-2); border: 0.5px solid var(--dsw-alias-border-l3);
+  opacity: 0; transition: opacity var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+.flykit-split:hover > .flykit-split-bar::after, body[data-flykit-dragging-row] .flykit-split-bar::after { opacity: 1; }
+
+.flykit-files-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-filter {
   margin: 8px 12px; padding: 5px 10px; box-sizing: border-box; flex: none;
   border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 8px;

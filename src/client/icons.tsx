@@ -111,6 +111,17 @@ export function CloseIcon() {
   return <svg {...svg} aria-hidden><path d="M4 4l8 8M12 4l-8 8" /></svg>
 }
 
+/** Stacked-layout glyph: a frame cut in half, lower half filled while split. */
+export function SplitIcon({ on }: { on: boolean }) {
+  return (
+    <svg {...svg} aria-hidden>
+      <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+      <path d="M1.5 8h13" />
+      {on && <rect x="2.5" y="8.6" width="11" height="4.2" rx="1" fill="currentColor" stroke="none" />}
+    </svg>
+  )
+}
+
 export function EyeIcon() {
   return (
     <svg {...svg} aria-hidden>
