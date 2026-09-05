@@ -1,7 +1,7 @@
 {
   "name": "dsh-flykit",
-  "version": "0.0.0",
-  "description": "flykit for DeepSeek Harness — file viewer, live file watch, Claude Code TUI orchestration, and a Claude-Code-style status line. Fly your agents.",
+  "version": "0.1.0",
+  "description": "flykit for DeepSeek Harness — status line, file explorer with editor and live watch, and Claude Code / Pi / Codex terminals in the web GUI. Fly your agents.",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -19,8 +19,10 @@
   },
   "files": [
     "lib/**",
+    "!lib/**/*.map",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -42,15 +44,23 @@
     "url": "git+https://github.com/flykit-cc/dsh-flykit.git"
   },
   "homepage": "https://flykit.cc",
+  "bugs": {
+    "url": "https://github.com/flykit-cc/dsh-flykit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
     "dsh-plugin",
     "cordis",
+    "flykit",
     "claude-code",
     "statusline",
     "codemirror",
-    "file-editor"
+    "file-editor",
+    "terminal"
   ],
   "engines": {
     "node": ">=22"
