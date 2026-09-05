@@ -111,6 +111,36 @@ export function CloseIcon() {
   return <svg {...svg} aria-hidden><path d="M4 4l8 8M12 4l-8 8" /></svg>
 }
 
+/** Four panes: every agent visible at once. */
+export function GridIcon() {
+  return (
+    <svg {...svg} aria-hidden>
+      <rect x="1.8" y="2.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="8.8" y="2.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="1.8" y="8.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="8.8" y="8.8" width="5.4" height="4.9" rx="1.2" />
+    </svg>
+  )
+}
+
+/** Corner arrows: outward to fill the window, inward to give the chat its width back. */
+export function MaxIcon({ on }: { on: boolean }) {
+  return on
+    ? <svg {...svg} aria-hidden><path d="M6.5 2.5V6.5H2.5 M9.5 13.5V9.5h4" /><path d="M6.5 6.5L2 2 M9.5 9.5L14 14" /></svg>
+    : <svg {...svg} aria-hidden><path d="M10 2.5h3.5V6 M6 13.5H2.5V10" /><path d="M13.5 2.5L9.5 6.5 M2.5 13.5L6.5 9.5" /></svg>
+}
+
+/** Stacked-layout glyph: a frame cut in half, lower half filled while split. */
+export function SplitIcon({ on }: { on: boolean }) {
+  return (
+    <svg {...svg} aria-hidden>
+      <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+      <path d="M1.5 8h13" />
+      {on && <rect x="2.5" y="8.6" width="11" height="4.2" rx="1" fill="currentColor" stroke="none" />}
+    </svg>
+  )
+}
+
 export function EyeIcon() {
   return (
     <svg {...svg} aria-hidden>

@@ -13,6 +13,7 @@ body[data-flykit-panel] div:has(> [data-shell-overlay]) {
 }
 body[data-flykit-dragging] div:has(> [data-shell-overlay]) { transition: none; }
 body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
+body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 
 .flykit-toggle {
   display: inline-grid; place-items: center; width: 32px; height: 32px;
@@ -23,7 +24,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 
 .flykit-panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: var(--flykit-panel-w);
-  display: flex; flex-direction: column; min-width: 0;
+  display: flex; flex-direction: column; min-width: 0; box-sizing: border-box;
   background: var(--dsw-alias-bg-base);
   border-left: 0.5px solid var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-primary);
@@ -48,15 +49,35 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
   color: var(--dsw-alias-label-secondary); border-bottom: 2px solid transparent; margin-bottom: -0.5px;
 }
 .flykit-tabs button[aria-selected="true"] { color: var(--dsw-alias-label-primary); border-bottom-color: var(--dsw-alias-brand-primary); }
-.flykit-close, .flykit-save {
+.flykit-head-title { padding: 4px 0 10px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.flykit-head-actions { display: flex; align-items: center; gap: 2px; }
+.flykit-headbtn, .flykit-save {
   padding: 0; line-height: 0;
   display: grid; place-items: center; flex: none; width: 28px; height: 28px; margin-bottom: 6px;
   border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;
 }
-.flykit-close:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-headbtn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-headbtn[aria-pressed="true"] { color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-interactive-bg-active); }
 
 .flykit-panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.flykit-files-pane { flex: 0 0 auto; max-height: 38%; display: flex; flex-direction: column; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
+
+/* Two stacked panes plus a grab strip; the top pane holds a percentage, the rest fills. */
+.flykit-split { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.flykit-split-pane { flex: none; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.flykit-split-rest { flex: 1; height: auto; }
+.flykit-split-bar {
+  position: relative; flex: none; height: 7px; cursor: row-resize; touch-action: none; z-index: 2;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+.flykit-split-bar::after {
+  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 32px; height: 4px; border-radius: 10px; box-sizing: border-box;
+  background: var(--dsw-alias-bg-layer-2); border: 0.5px solid var(--dsw-alias-border-l3);
+  opacity: 0; transition: opacity var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+.flykit-split:hover > .flykit-split-bar::after, body[data-flykit-dragging-row] .flykit-split-bar::after { opacity: 1; }
+
+.flykit-files-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-filter {
   margin: 8px 12px; padding: 5px 10px; box-sizing: border-box; flex: none;
   border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 8px;
@@ -113,12 +134,14 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-usage-item[data-tone="warn"] .flykit-usage-bar > span { background: var(--dsw-alias-state-warn-primary); }
 .flykit-usage-item[data-tone="error"] .flykit-usage-bar > span { background: var(--dsw-alias-state-error-primary); }
 .flykit-usage-pct { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-secondary); }
-.flykit-term-new { position: relative; margin-left: auto; }
+.flykit-term-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.flykit-term-new { position: relative; }
 .flykit-term-add {
   all: unset; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1;
   color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
 }
 .flykit-term-add:hover, .flykit-term-add[aria-expanded="true"] { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-add[aria-pressed="true"] { color: var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-interactive-bg-active); }
 .flykit-menu {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; min-width: 160px; margin: 0; padding: 4px; list-style: none;
   background: var(--dsw-alias-bg-layer-1); border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
@@ -146,7 +169,48 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-term .xterm-viewport::-webkit-scrollbar { width: 8px; }
 .flykit-term .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
 
+/* Every agent at once: two columns, rows as needed, each card tall enough for a usable fit(). */
+.flykit-term-grid {
+  flex: 1; min-height: 0; overflow: auto; display: grid; gap: 10px; padding: 10px 12px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(170px, 1fr);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.flykit-term-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 0; }
+.flykit-term-cell-head {
+  display: flex; align-items: center; gap: 6px; flex: none; padding: 0 2px; overflow: hidden;
+  font-size: 11.5px; font-weight: 500; white-space: nowrap; color: var(--dsw-alias-label-tertiary);
+}
+.flykit-term-cell-head svg { flex: none; }
+.flykit-term-cell-head span { overflow: hidden; text-overflow: ellipsis; }
+.flykit-term-cell[aria-selected="true"] .flykit-term-cell-head { color: var(--dsw-alias-label-primary); }
+.flykit-term-cell .flykit-term { padding: 10px 6px 8px 12px; }
+.flykit-term-cell[aria-selected="true"] .flykit-term {
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
 .flykit-editor-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* One tab per open file. The strip scrolls sideways rather than wrapping, so the editor keeps its height. */
+.flykit-doctabs {
+  display: flex; align-items: flex-end; gap: 2px; flex: none; padding: 4px 6px 0; overflow-x: auto;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2); scrollbar-width: none;
+}
+.flykit-doctabs::-webkit-scrollbar { height: 0; }
+.flykit-doctab {
+  display: flex; align-items: center; gap: 6px; flex: none; box-sizing: border-box; max-width: 190px; height: 26px;
+  padding: 0 4px 0 8px; border-radius: 8px 8px 0 0; cursor: pointer; white-space: nowrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary); border: 0.5px solid transparent; border-bottom: none; margin-bottom: -0.5px;
+}
+.flykit-doctab:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-doctab[aria-selected="true"] { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border-color: var(--dsw-alias-border-l2); }
+.flykit-doctab svg { flex: none; }
+.flykit-doctab-name { overflow: hidden; text-overflow: ellipsis; }
+.flykit-doctab-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-warn-primary); }
+.flykit-doctab button { all: unset; display: grid; place-items: center; flex: none; width: 16px; height: 16px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
+.flykit-doctab button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-doctab button svg { width: 10px; height: 10px; }
+
 .flykit-editor-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
 .flykit-editor-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--dsw-alias-label-secondary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .flykit-save { width: auto; height: 24px; margin: 0; padding: 0 10px; font-size: 12px; color: var(--dsw-alias-label-primary-inverted); background: var(--dsw-alias-button-primary-fill); }
