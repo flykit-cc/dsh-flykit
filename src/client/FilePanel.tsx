@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useRef, useState } from 'react'
 import { Editor } from './Editor.tsx'
+import { FileTree } from './FileTree.tsx'
+import { CloseIcon } from './icons.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
 
 const api = (route: string, sessionId: string, path = '') =>
@@ -44,47 +45,73 @@ function useDoc(sessionId: string, path: string | null) {
   return { doc, setText: (text: string) => setDoc(d => d === null ? d : { ...d, text }), save }
 }
 
-function Drawer({ sessionId }: { sessionId: string }) {
+function FilesTab({ sessionId }: { sessionId: string }) {
   const files = useFiles(sessionId)
   const [filter, setFilter] = useState('')
   const [path, setPath] = useState<string | null>(null)
   const { doc, setText, save } = useDoc(sessionId, path)
   const dirty = doc !== null && doc.text !== doc.saved
 
-  const q = filter.toLowerCase()
-  const shown = (q === '' ? files : files.filter(f => f.toLowerCase().includes(q))).slice(0, 400)
-
   return (
-    <aside className="flykit-drawer" aria-label="Files">
-      <header className="flykit-drawer-head">
-        <Input placeholder="Filter files" value={filter} onChange={e => setFilter(e.currentTarget.value)} />
-        <Button size="sm" variant="primary" disabled={!dirty} onClick={save}>Save</Button>
-        <Button size="sm" onClick={() => setPanel({ open: false })} aria-label="Close">✕</Button>
-      </header>
-      <div className="flykit-drawer-body">
-        <ul className="flykit-files">
-          {shown.map(f => (
-            <li key={f}>
-              <button type="button" aria-current={f === path} onClick={() => setPath(f)} title={f}>{f}</button>
-            </li>
-          ))}
-          {files.length === 0 && <li className="flykit-empty">No files</li>}
-        </ul>
-        <div className="flykit-editor-host">
-          {doc?.error !== undefined && <p className="flykit-empty">{doc.error}</p>}
-          {doc !== null && doc.error === undefined && (
-            <Editor path={doc.path} text={doc.text} onChange={setText} onSave={save} />
-          )}
-          {doc === null && <p className="flykit-empty">Pick a file</p>}
-        </div>
+    <>
+      <div className="flykit-files-pane">
+        <input className="flykit-filter" placeholder="Filter files…" value={filter} onChange={e => setFilter(e.currentTarget.value)} />
+        <FileTree files={files} filter={filter} selected={path} onSelect={setPath} />
       </div>
-      <footer className="flykit-drawer-foot">{doc?.path ?? ''}{dirty ? ' ●' : ''}</footer>
-    </aside>
+      <div className="flykit-editor-pane">
+        {doc !== null && (
+          <div className="flykit-editor-bar">
+            <span className="flykit-editor-path" title={doc.path}>{doc.path}{dirty ? ' ●' : ''}</span>
+            <button type="button" className="flykit-save" disabled={!dirty} onClick={save}>Save</button>
+          </div>
+        )}
+        {doc?.error !== undefined && <p className="flykit-empty">{doc.error}</p>}
+        {doc !== null && doc.error === undefined && <Editor path={doc.path} text={doc.text} onChange={setText} onSave={save} />}
+        {doc === null && <p className="flykit-empty">Pick a file</p>}
+      </div>
+    </>
   )
 }
 
-/** Root-overlay entry: nothing until the composer button opens it. */
+/** Left-edge resize strip: pointer capture, width written straight to the store. */
+function ResizeHandle() {
+  const base = useRef({ x: 0, w: 0 })
+  return (
+    <div
+      className="flykit-panel-handle"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize panel"
+      onPointerDown={e => {
+        base.current = { x: e.clientX, w: parseFloat(getComputedStyle(document.body).getPropertyValue('--flykit-panel-w')) }
+        e.currentTarget.setPointerCapture(e.pointerId)
+        document.body.dataset.flykitDragging = ''
+      }}
+      onPointerMove={e => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+        setPanel({ width: base.current.w + (base.current.x - e.clientX) })
+      }}
+      onPointerUp={e => { e.currentTarget.releasePointerCapture(e.pointerId); delete document.body.dataset.flykitDragging }}
+    />
+  )
+}
+
+/** Root-overlay entry: the right column, rendered only while the toggle has it open. */
 export function FilePanel() {
   const { open, sessionId } = usePanel()
-  return open && sessionId !== null ? <Drawer sessionId={sessionId} /> : null
+  if (!open || sessionId === null) return null
+  return (
+    <aside className="flykit-panel" aria-label="flykit panel">
+      <ResizeHandle />
+      <div className="flykit-panel-head">
+        <div className="flykit-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected>Files</button>
+        </div>
+        <button type="button" className="flykit-close" aria-label="Close panel" onClick={() => setPanel({ open: false })}><CloseIcon /></button>
+      </div>
+      <div className="flykit-panel-body">
+        <FilesTab sessionId={sessionId} />
+      </div>
+    </aside>
+  )
 }

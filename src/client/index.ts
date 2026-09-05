@@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { StatusLine } from './StatusLine.tsx'
-import { FilesButton } from './FilesButton.tsx'
+import { PanelToggle } from './PanelToggle.tsx'
 import { FilePanel } from './FilePanel.tsx'
 import { installStyles } from './styles.ts'
 
@@ -16,12 +16,12 @@ export function apply(ctx: ClientContext): void {
     { name: 'conversation.composer.dock', id: 'flykit', order: 10 },
     StatusLine,
   ))
-  ctx.slots.inject('conversation.input.right', () => ctx.slots.register(
-    { name: 'conversation.input.right', id: 'flykit-files', order: 10, label: 'Files' },
-    FilesButton,
+  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register(
+    { name: 'conversation.session.header.utilities', id: 'flykit-panel', order: 100, label: 'flykit' },
+    PanelToggle,
   ))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register(
-    { name: 'shell.overlay', id: 'flykit-files', order: 10 },
+    { name: 'shell.overlay', id: 'flykit-panel', order: 10 },
     FilePanel,
   ))
 }
