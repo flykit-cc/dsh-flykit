@@ -41,6 +41,7 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
   const [cursor, setCursor] = useState(0)
   const [recent, setRecent] = useState<string[]>(() => readList(RECENT_KEY))
   const [fav, setFav] = useState<string[]>(() => readList(FAV_KEY))
+  const [sync, setSync] = useState<'idle' | 'busy' | string>('idle')
   const trigger = useRef<HTMLButtonElement>(null)
   const pop = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -124,6 +125,18 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5L14 14" /></svg>
             <input ref={input} value={query} placeholder="Search models…  (↑↓ Enter)" onChange={e => setQuery(e.currentTarget.value)} />
             {query !== '' && <button type="button" className="fkm-clear" aria-label="Clear" onClick={() => setQuery('')}>×</button>}
+            <button
+              type="button" className="fkm-sync" disabled={sync === 'busy'} data-busy={sync === 'busy' || undefined}
+              title={sync === 'idle' || sync === 'busy' ? 'Refresh the OpenRouter catalog from openrouter.ai' : sync}
+              onClick={() => {
+                setSync('busy')
+                fetch('/api/flykit/catalog-sync', { method: 'POST' }).then(r => r.json())
+                  .then((j: { count?: number; skipped?: string; error?: string }) => { setSync(j.count !== undefined ? `Synced ${j.count} models` : (j.skipped ?? j.error ?? 'failed')); load() })
+                  .catch(() => setSync('failed'))
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M13 8a5 5 0 01-8.5 3.6M3 8a5 5 0 018.5-3.6M11.5 2v2.5H9M4.5 14v-2.5H7" /></svg>
+            </button>
           </div>
           <div className="fkm-pills">
             <Pill id="all" label="All" count={rows.length} active={filter} set={setFilter} />

@@ -32,6 +32,10 @@ export const MODEL_PICKER_CSS = `
 .fkm-search input::placeholder { color: var(--dsw-alias-label-dimmed); }
 .fkm-clear { all: unset; cursor: pointer; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 999px; color: var(--dsw-alias-label-tertiary); font-size: 16px; }
 .fkm-clear:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.fkm-sync { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: var(--dsw-alias-label-tertiary); }
+.fkm-sync:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.fkm-sync[data-busy] svg { animation: fkm-spin 0.9s linear infinite; }
+@keyframes fkm-spin { to { transform: rotate(360deg); } }
 
 .fkm-pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
 .fkm-pill {

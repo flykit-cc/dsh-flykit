@@ -12,6 +12,9 @@ import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
 import { claudeUsage } from './claude-usage.js'
+import { fetchOpenRouter } from './catalog-sync.js'
+// Type-only: declares `ctx.settings`.
+import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
 
 export const name = 'flykit'
@@ -128,4 +131,33 @@ export function apply(ctx: Context): void {
       streamChanges(cwd, req, res)
     },
   }), 'flykit: /api/flykit/watch')
+
+  // Live OpenRouter catalog into the user's llm settings. Optional: a
+  // composition without the settings service simply keeps the static list.
+  ctx.inject(['settings'], (scope: Context) => {
+    const NS = 'llm-pi-ai'
+    const sync = async (): Promise<{ count: number } | { skipped: string }> => {
+      const doc = scope.settings.get(NS) as { providers?: Record<string, unknown> } | undefined
+      if (doc?.providers?.['openrouter'] === undefined) return { skipped: 'openrouter not configured' }
+      const models = await fetchOpenRouter()
+      if (models.length < 50) return { skipped: `only ${models.length} models returned` }   // never replace a full list with a stub
+      await scope.settings.mutate(NS, [{ op: 'set', path: ['providers', 'openrouter', 'models'], value: models }])
+      return { count: models.length }
+    }
+    // Once at boot, then daily; failures are logged, never thrown into the host.
+    const run = () => { sync().then(r => { if ('count' in r) console.log(`[flykit] openrouter catalog: ${r.count} models`) }).catch(e => console.warn('[flykit] catalog sync failed:', e instanceof Error ? e.message : e)) }
+    const boot = setTimeout(run, 3_000)
+    const daily = setInterval(run, 24 * 3600_000)
+    scope.effect(() => () => { clearTimeout(boot); clearInterval(daily) }, 'flykit: catalog sync')
+    scope.effect(() => scope.webServer.register({
+      kind: 'exact',
+      path: '/api/flykit/catalog-sync',
+      handler: async (req, res) => {
+        res.setHeader('content-type', 'application/json; charset=utf-8')
+        if (req.method !== 'POST') { res.statusCode = 405; res.end('{}'); return }
+        try { res.end(JSON.stringify(await sync())) }
+        catch (e) { res.statusCode = 500; res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) })) }
+      },
+    }), 'flykit: /api/flykit/catalog-sync')
+  })
 }
