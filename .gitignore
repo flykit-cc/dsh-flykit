@@ -4,3 +4,6 @@ lib/
 .DS_Store
 .env
 .env.*
+
+# Raw recorder output; the mp4 and gif beside it are the published ones.
+docs/media/*.webm

@@ -6,7 +6,7 @@ A plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 `dsh web` GUI into an agent cockpit: a file explorer with an editor, real coding-agent terminals,
 a searchable model picker, and a status line under the composer.
 
-![The dsh web window with the flykit panel open: file tree above, an open TypeScript file below, status line under the composer](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/hero.png)
+![The flykit panel: a shell running git status, then the file tree with an open TypeScript file, then the model picker over 435 models](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/media/cockpit.gif)
 
 ## What you get
 
