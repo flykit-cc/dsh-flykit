@@ -105,7 +105,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-term-card[data-dead] .flykit-term-state { background: var(--dsw-alias-label-dimmed); box-shadow: none; }
 .flykit-term-card button { all: unset; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; cursor: pointer; color: var(--dsw-alias-label-tertiary); }
 .flykit-term-card button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
-.flykit-usage { display: flex; align-items: center; gap: 10px; margin-left: auto; padding: 0 4px; }
+.flykit-usage { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 5px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); background: var(--dsw-alias-bg-layer-1); }
 .flykit-usage-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
 .flykit-usage-label { font-weight: 500; }
 .flykit-usage-bar { width: 44px; height: 4px; border-radius: 2px; overflow: hidden; background: var(--dsw-alias-border-l2); }
@@ -113,9 +113,7 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-usage-item[data-tone="warn"] .flykit-usage-bar > span { background: var(--dsw-alias-state-warn-primary); }
 .flykit-usage-item[data-tone="error"] .flykit-usage-bar > span { background: var(--dsw-alias-state-error-primary); }
 .flykit-usage-pct { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-secondary); }
-.flykit-term-new { position: relative; }
-.flykit-usage + .flykit-term-new { margin-left: 4px; }
-.flykit-term-tabs > .flykit-term-new:first-child, .flykit-term-card + .flykit-term-new { margin-left: auto; }
+.flykit-term-new { position: relative; margin-left: auto; }
 .flykit-term-add {
   all: unset; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1;
   color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
@@ -150,6 +148,8 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-editor { flex: 1; min-height: 0; overflow: hidden; }
 .flykit-editor .cm-editor { height: 100%; }
 .flykit-empty { margin: 16px; color: var(--dsw-alias-label-tertiary); }
+.flykit-loading { animation: flykit-pulse 1.2s ease-in-out infinite; }
+@keyframes flykit-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 .flykit-iconbtn {
   display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; line-height: 0;
   border: none; border-radius: 999px; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer;

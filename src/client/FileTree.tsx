@@ -24,10 +24,11 @@ export interface FileTreeProps {
   selected: string | null
   /** Paths touched on disk since they were last opened; parents inherit the mark. */
   changed: Set<string>
+  loading?: boolean
   onSelect: (path: string) => void
 }
 
-export function FileTree({ files, filter, selected, changed, onSelect }: FileTreeProps) {
+export function FileTree({ files, filter, selected, changed, loading = false, onSelect }: FileTreeProps) {
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   const q = filter.trim().toLowerCase()
   const tree = useMemo(() => build(files), [files])
@@ -65,7 +66,14 @@ export function FileTree({ files, filter, selected, changed, onSelect }: FileTre
     return out
   }
 
-  return <ul className="flykit-tree" role="tree">{render(tree, '', 0)}{files.length === 0 && <li className="flykit-empty">No files</li>}</ul>
+  const empty = files.length === 0
+  return (
+    <ul className="flykit-tree" role="tree" aria-busy={loading}>
+      {render(tree, '', 0)}
+      {empty && loading && <li className="flykit-empty flykit-loading">Loading files…</li>}
+      {empty && !loading && <li className="flykit-empty">No files</li>}
+    </ul>
+  )
 }
 
 function Row({ depth, path, label, dir = false, dirOpen = false, selected = false, changed = false, onClick }: {

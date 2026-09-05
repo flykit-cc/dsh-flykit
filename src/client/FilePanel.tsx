@@ -7,16 +7,34 @@ import { setPanel, usePanel } from './panel-store.ts'
 import { Terminals } from './Terminals.tsx'
 import { api } from './api.ts'
 
-function useFiles(sessionId: string, tick: number): string[] {
-  const [files, setFiles] = useState<string[]>([])
+const RETRIES = 6   // right after a host restart the session is not attached yet: the route 404s once or twice
+
+/** Workspace file list: last known list paints instantly, then the host answers; a 404 is retried with backoff. */
+function useFiles(sessionId: string, tick: number): { files: string[]; loading: boolean } {
+  const key = `flykit.files.${sessionId}`
+  const [files, setFiles] = useState<string[]>(() => { try { return JSON.parse(sessionStorage.getItem(key) ?? '[]') as string[] } catch { return [] } })
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     const ac = new AbortController()
-    fetch(api('files', sessionId), { cache: 'no-store', signal: ac.signal })
-      .then(r => r.json()).then((j: { files?: string[] }) => setFiles(j.files ?? []))
-      .catch(() => {})
+    let attempt = 0
+    const load = (): void => {
+      fetch(api('files', sessionId), { cache: 'no-store', signal: ac.signal })
+        .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
+        .then((j: { files?: string[] }) => {
+          const list = j.files ?? []
+          setFiles(list); setLoading(false)
+          try { sessionStorage.setItem(key, JSON.stringify(list)) } catch {}
+        })
+        .catch(() => {
+          if (ac.signal.aborted) return
+          if (++attempt < RETRIES) setTimeout(load, 300 * attempt)
+          else setLoading(false)
+        })
+    }
+    load()
     return () => { ac.abort() }
   }, [sessionId, tick])
-  return files
+  return { files, loading }
 }
 
 /** One SSE stream per open panel; the browser reconnects on its own. */
@@ -67,7 +85,7 @@ function useDoc(sessionId: string, path: string | null) {
 
 function FilesTab({ sessionId }: { sessionId: string }) {
   const [tick, setTick] = useState(0)
-  const files = useFiles(sessionId, tick)
+  const { files, loading } = useFiles(sessionId, tick)
   const [filter, setFilter] = useState('')
   const [path, setPath] = useState<string | null>(null)
   const [changed, setChanged] = useState<Set<string>>(() => new Set())
@@ -88,7 +106,7 @@ function FilesTab({ sessionId }: { sessionId: string }) {
     <>
       <div className="flykit-files-pane">
         <input className="flykit-filter" placeholder="Filter files…" value={filter} onChange={e => setFilter(e.currentTarget.value)} />
-        <FileTree files={files} filter={filter} selected={path} changed={changed} onSelect={select} />
+        <FileTree files={files} filter={filter} selected={path} changed={changed} loading={loading} onSelect={select} />
       </div>
       <div className="flykit-editor-pane">
         {doc !== null && (

@@ -47,7 +47,6 @@ export function Terminals({ sessionId }: { sessionId: string }) {
             <button type="button" aria-label="Close terminal" onClick={e => { e.stopPropagation(); close(t.id) }}><CloseIcon /></button>
           </div>
         ))}
-        <ClaudeUsage />
         <div className="flykit-term-new">
           <button type="button" className="flykit-term-add" title="New agent" onClick={() => setPicking(p => !p)} aria-expanded={picking}>+</button>
           {picking && (
@@ -57,6 +56,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
           )}
         </div>
       </div>
+      {terms.some(t => t.agent === 'claude') && <ClaudeUsage />}
       <div className="flykit-term-body">
         {active !== null
           ? <TerminalView key={active} sessionId={sessionId} id={active} />
