@@ -1,45 +1,48 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildSegments, formatK } from './segments.ts'
+import { buildSegments, formatElapsed, ringToken } from './segments.ts'
 
-const usage = { uncachedInputTokens: 1200, outputTokens: 800, cacheReadTokens: 300, cacheWriteTokens: 100 }
-const base = { running: false, streaming: false, tool: undefined, model: undefined, usage: undefined, pressure: undefined }
+const base = { running: false, tool: undefined, elapsedMs: null, git: undefined }
 
-test('idle with nothing else known', () => {
+test('idle with no git', () => {
   assert.deepEqual(buildSegments(base), ['● idle'])
 })
 
-test('running with a tool names the first tool', () => {
-  assert.deepEqual(buildSegments({ ...base, running: true, tool: 'Read' }), ['● running Read'])
+test('running with a tool names it and times it', () => {
+  assert.deepEqual(buildSegments({ ...base, running: true, tool: 'Read', elapsedMs: 12_000 }), ['● running Read · 12s'])
 })
 
-test('running while streaming and no tool is thinking', () => {
-  assert.deepEqual(buildSegments({ ...base, running: true, streaming: true }), ['● thinking…'])
+test('running with no tool is thinking', () => {
+  assert.deepEqual(buildSegments({ ...base, running: true, elapsedMs: 4_000 }), ['● thinking… · 4s'])
 })
 
-test('running with nothing streaming yet is still thinking', () => {
+test('running with no turn start shows no timer', () => {
   assert.deepEqual(buildSegments({ ...base, running: true }), ['● thinking…'])
 })
 
-test('model and tokens and context', () => {
-  assert.deepEqual(
-    buildSegments({ ...base, model: { provider: 'deepseek', model: 'deepseek-v4' }, usage, pressure: { projectedTokens: 32000, contextWindow: 128000 } }),
-    ['● idle', 'deepseek/deepseek-v4', '1.5k in / 800 out', 'ctx 25%'],
-  )
+test('clean branch, then dirty branch', () => {
+  assert.deepEqual(buildSegments({ ...base, git: { branch: 'main', dirty: 0 } }), ['● idle', 'main'])
+  assert.deepEqual(buildSegments({ ...base, git: { branch: 'main', dirty: 3 } }), ['● idle', 'main *3'])
 })
 
-test('undefined projections drop their segment; null model too', () => {
-  assert.deepEqual(buildSegments({ ...base, model: null, usage: undefined, pressure: { contextWindow: 128000 } }), ['● idle'])
+test('detached or absent git drops the segment', () => {
+  assert.deepEqual(buildSegments({ ...base, git: { branch: null, dirty: 2 } }), ['● idle'])
+  assert.deepEqual(buildSegments({ ...base, git: undefined }), ['● idle'])
 })
 
-test('zero tokens drops the token segment', () => {
-  assert.deepEqual(buildSegments({ ...base, usage: { uncachedInputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } }), ['● idle'])
+test('formatElapsed', () => {
+  assert.equal(formatElapsed(0), '0s')
+  assert.equal(formatElapsed(59_999), '59s')
+  assert.equal(formatElapsed(60_000), '1m00s')
+  assert.equal(formatElapsed(65_000), '1m05s')
+  assert.equal(formatElapsed(3_725_000), '62m05s')
 })
 
-test('formatK', () => {
-  assert.equal(formatK(999), '999')
-  assert.equal(formatK(1000), '1.0k')
-  assert.equal(formatK(1500), '1.5k')
-  assert.equal(formatK(12345), '12.3k')
-  assert.equal(formatK(1_200_000), '1.2M')
+test('ringToken thresholds', () => {
+  assert.equal(ringToken(0), '--dsw-alias-state-success-primary')
+  assert.equal(ringToken(59), '--dsw-alias-state-success-primary')
+  assert.equal(ringToken(60), '--dsw-alias-state-warn-primary')
+  assert.equal(ringToken(84), '--dsw-alias-state-warn-primary')
+  assert.equal(ringToken(85), '--dsw-alias-state-error-primary')
+  assert.equal(ringToken(null), null)
 })

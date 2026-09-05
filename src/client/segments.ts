@@ -1,38 +1,38 @@
 export interface StatusFacts {
   running: boolean
-  streaming: boolean
   tool: string | undefined
-  model: { provider: string; model: string } | null | undefined
-  usage: { uncachedInputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number } | undefined
-  pressure: { projectedTokens?: number; contextWindow?: number } | undefined
+  elapsedMs: number | null
+  git: { branch: string | null; dirty: number } | undefined
 }
 
-export function formatK(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
-  return String(n)
+/** `<n>s` below a minute, `<m>mss s` from a minute on: 65000 → `1m05s`. */
+export function formatElapsed(ms: number): string {
+  const total = Math.floor(ms / 1000)
+  if (total < 60) return `${total}s`
+  return `${Math.floor(total / 60)}m${String(total % 60).padStart(2, '0')}s`
 }
 
 function stateSegment(f: StatusFacts): string {
   if (!f.running) return '● idle'
-  if (f.tool !== undefined) return `● running ${f.tool}`
-  return '● thinking…'
+  const state = f.tool === undefined ? '● thinking…' : `● running ${f.tool}`
+  return f.elapsedMs === null ? state : `${state} · ${formatElapsed(f.elapsedMs)}`
 }
 
-// One segment per fact. An absent fact (undefined projection, null model,
-// zero tokens, missing window) contributes nothing rather than a placeholder.
+// One segment per fact. An absent fact (no turn running, git route absent,
+// not a repo) contributes nothing rather than a placeholder.
 export function buildSegments(f: StatusFacts): string[] {
   const out = [stateSegment(f)]
-  if (f.model) out.push(`${f.model.provider}/${f.model.model}`)
-  if (f.usage) {
-    const inTokens = f.usage.uncachedInputTokens + f.usage.cacheReadTokens
-    if (inTokens > 0 || f.usage.outputTokens > 0) {
-      out.push(`${formatK(inTokens)} in / ${formatK(f.usage.outputTokens)} out`)
-    }
-  }
-  const { projectedTokens, contextWindow } = f.pressure ?? {}
-  if (projectedTokens !== undefined && contextWindow !== undefined && contextWindow > 0) {
-    out.push(`ctx ${Math.round((projectedTokens / contextWindow) * 100)}%`)
+  const git = f.git
+  if (git !== undefined && git.branch !== null) {
+    out.push(git.dirty > 0 ? `${git.branch} *${git.dirty}` : git.branch)
   }
   return out
+}
+
+/** The `--dsw-*` token the context ring takes at a given occupancy. */
+export function ringToken(percent: number | null): string | null {
+  if (percent === null) return null
+  if (percent < 60) return '--dsw-alias-state-success-primary'
+  if (percent < 85) return '--dsw-alias-state-warn-primary'
+  return '--dsw-alias-state-error-primary'
 }
