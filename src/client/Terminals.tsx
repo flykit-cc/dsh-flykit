@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from './api.ts'
-import { AgentGlyph, CloseIcon } from './icons.tsx'
+import { AgentGlyph, CloseIcon, GridIcon } from './icons.tsx'
+import { setPanel, usePanel } from './panel-store.ts'
 import { TerminalView } from './TerminalView.tsx'
 import { ClaudeUsage } from './ClaudeUsage.tsx'
 
@@ -13,7 +14,14 @@ const AGENTS = [
   { id: 'shell', label: 'Shell' },
 ]
 
+/** "Claude Code 2" once more than one of that agent is running. */
+function labelFor(terms: TermInfo[], t: TermInfo): string {
+  const same = terms.filter(x => x.agent === t.agent)
+  return same.length > 1 ? `${t.label} ${same.indexOf(t) + 1}` : t.label
+}
+
 export function Terminals({ sessionId }: { sessionId: string }) {
+  const { grid } = usePanel()
   const [terms, setTerms] = useState<TermInfo[]>([])
   const [active, setActive] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
@@ -36,39 +44,70 @@ export function Terminals({ sessionId }: { sessionId: string }) {
     fetch(api('terms', sessionId, { id }), { method: 'DELETE' }).then(() => refresh()).catch(() => {})
   }
 
+  // One terminal has nothing to tile, so the toggle stays hidden and the grid stays off.
+  const canGrid = terms.length > 1
+  const showGrid = grid && canGrid
+
   return (
     <div className="flykit-terms">
       <div className="flykit-term-tabs" role="tablist">
-        {terms.map((t, i) => (
+        {terms.map(t => (
           <div key={t.id} role="tab" aria-selected={t.id === active} className="flykit-term-card" data-dead={t.exited !== null || undefined} onClick={() => setActive(t.id)}>
             <AgentGlyph agent={t.agent} />
-            <span className="flykit-term-name">{t.label}{terms.filter(x => x.agent === t.agent).length > 1 ? ` ${terms.filter((x, j) => x.agent === t.agent && j <= i).length}` : ''}</span>
+            <span className="flykit-term-name">{labelFor(terms, t)}</span>
             <span className="flykit-term-state" title={t.exited === null ? 'running' : `exited ${t.exited}`} />
             <button type="button" aria-label="Close terminal" onClick={e => { e.stopPropagation(); close(t.id) }}><CloseIcon /></button>
           </div>
         ))}
-        <div className="flykit-term-new">
-          <button type="button" className="flykit-term-add" title="New agent" onClick={() => setPicking(p => !p)} aria-expanded={picking}>+</button>
-          {picking && (
-            <ul className="flykit-menu" role="menu">
-              {AGENTS.map(a => <li key={a.id}><button type="button" role="menuitem" onClick={() => open(a.id)}><AgentGlyph agent={a.id} />{a.label}</button></li>)}
-            </ul>
+        <div className="flykit-term-actions">
+          {canGrid && (
+            <button type="button" className="flykit-term-add" title={showGrid ? 'Show only the focused agent' : 'Show every agent at once'} aria-label="Grid view" aria-pressed={showGrid} onClick={() => setPanel({ grid: !grid })}>
+              <GridIcon />
+            </button>
           )}
+          <div className="flykit-term-new">
+            <button type="button" className="flykit-term-add" title="New agent" onClick={() => setPicking(p => !p)} aria-expanded={picking}>+</button>
+            {picking && (
+              <ul className="flykit-menu" role="menu">
+                {AGENTS.map(a => <li key={a.id}><button type="button" role="menuitem" onClick={() => open(a.id)}><AgentGlyph agent={a.id} />{a.label}</button></li>)}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
       {terms.find(t => t.id === active)?.agent === 'claude' && <ClaudeUsage />}
-      <div className="flykit-term-body">
-        {active !== null
-          ? <TerminalView key={active} sessionId={sessionId} id={active} />
-          : (
-            <div className="flykit-term-hero">
-              <p>Run an agent in this workspace.</p>
-              <div className="flykit-term-hero-row">
-                {AGENTS.map(a => <button key={a.id} type="button" onClick={() => open(a.id)}><AgentGlyph agent={a.id} />{a.label}</button>)}
+      {showGrid
+        ? (
+          <div className="flykit-term-grid">
+            {terms.map(t => (
+              <div
+                key={t.id}
+                role="tab"
+                aria-selected={t.id === active}
+                className="flykit-term-cell"
+                // xterm focuses itself on its own screen; this also covers the caption and the card padding.
+                onPointerDown={e => { setActive(t.id); e.currentTarget.querySelector('textarea')?.focus() }}
+              >
+                <div className="flykit-term-cell-head"><AgentGlyph agent={t.agent} /><span>{labelFor(terms, t)}</span></div>
+                <TerminalView sessionId={sessionId} id={t.id} autoFocus={t.id === active} />
               </div>
-            </div>
-          )}
-      </div>
+            ))}
+          </div>
+        )
+        : (
+          <div className="flykit-term-body">
+            {active !== null
+              ? <TerminalView key={active} sessionId={sessionId} id={active} />
+              : (
+                <div className="flykit-term-hero">
+                  <p>Run an agent in this workspace.</p>
+                  <div className="flykit-term-hero-row">
+                    {AGENTS.map(a => <button key={a.id} type="button" onClick={() => open(a.id)}><AgentGlyph agent={a.id} />{a.label}</button>)}
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
     </div>
   )
 }

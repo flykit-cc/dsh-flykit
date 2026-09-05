@@ -111,6 +111,18 @@ export function CloseIcon() {
   return <svg {...svg} aria-hidden><path d="M4 4l8 8M12 4l-8 8" /></svg>
 }
 
+/** Four panes: every agent visible at once. */
+export function GridIcon() {
+  return (
+    <svg {...svg} aria-hidden>
+      <rect x="1.8" y="2.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="8.8" y="2.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="1.8" y="8.8" width="5.4" height="4.9" rx="1.2" />
+      <rect x="8.8" y="8.8" width="5.4" height="4.9" rx="1.2" />
+    </svg>
+  )
+}
+
 /** Corner arrows: outward to fill the window, inward to give the chat its width back. */
 export function MaxIcon({ on }: { on: boolean }) {
   return on

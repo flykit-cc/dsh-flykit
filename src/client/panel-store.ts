@@ -12,6 +12,8 @@ export interface PanelState {
   split: boolean
   /** Full window width; the shell frame shrinks to nothing behind it. */
   max: boolean
+  /** Agents tab shows every terminal at once instead of only the focused one. */
+  grid: boolean
   /** Agents' share of the panel body height while split. */
   splitRatio: number
   /** The file tree's share of the Explorer height. */
@@ -25,7 +27,7 @@ const KEY = 'flykit.panel'
 /** Persisted keys; `sessionId` is per-tab and never written. */
 type Saved = Omit<PanelState, 'sessionId'>
 
-const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, splitRatio: 0.5, treeRatio: 0.38 }
+const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, grid: false, splitRatio: 0.5, treeRatio: 0.38 }
 
 function load(): PanelState {
   try {
@@ -36,6 +38,7 @@ function load(): PanelState {
       width: clamp(j.width ?? DEFAULTS.width),
       split: j.split === true,
       max: j.max === true,
+      grid: j.grid === true,
       splitRatio: clampRatio(j.splitRatio ?? DEFAULTS.splitRatio),
       treeRatio: clampRatio(j.treeRatio ?? DEFAULTS.treeRatio),
     }

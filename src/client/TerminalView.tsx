@@ -5,8 +5,10 @@ import { api } from './api.ts'
 import { onThemeChange, terminalTheme } from './term-theme.ts'
 
 /** One xterm bound to one host PTY: output over SSE, input and size over small POSTs. */
-export function TerminalView({ sessionId, id }: { sessionId: string; id: string }) {
+export function TerminalView({ sessionId, id, autoFocus = true }: { sessionId: string; id: string; autoFocus?: boolean }) {
   const host = useRef<HTMLDivElement>(null)
+  // Several views are mounted at once in the grid; only the focused one may grab the keyboard.
+  const grabFocus = useRef(autoFocus)
 
   useEffect(() => {
     const el = host.current!
@@ -52,7 +54,7 @@ export function TerminalView({ sessionId, id }: { sessionId: string; id: string 
       if (first) { first = false; term.clear() }
       term.write(chunk)
     }
-    term.focus()
+    if (grabFocus.current) term.focus()
     const stopTheme = onThemeChange(() => { term.options.theme = terminalTheme() })
 
     return () => { stopTheme(); es.close(); ro.disconnect(); input.dispose(); term.dispose() }

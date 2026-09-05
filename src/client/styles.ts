@@ -134,12 +134,14 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 .flykit-usage-item[data-tone="warn"] .flykit-usage-bar > span { background: var(--dsw-alias-state-warn-primary); }
 .flykit-usage-item[data-tone="error"] .flykit-usage-bar > span { background: var(--dsw-alias-state-error-primary); }
 .flykit-usage-pct { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-secondary); }
-.flykit-term-new { position: relative; margin-left: auto; }
+.flykit-term-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.flykit-term-new { position: relative; }
 .flykit-term-add {
   all: unset; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1;
   color: var(--dsw-alias-label-primary); border: 0.5px solid var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-1);
 }
 .flykit-term-add:hover, .flykit-term-add[aria-expanded="true"] { background: var(--dsw-alias-interactive-bg-hover); }
+.flykit-term-add[aria-pressed="true"] { color: var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-interactive-bg-active); }
 .flykit-menu {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; min-width: 160px; margin: 0; padding: 4px; list-style: none;
   background: var(--dsw-alias-bg-layer-1); border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
@@ -166,6 +168,26 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 .flykit-term .xterm-viewport { background: transparent !important; border-radius: 10px; }
 .flykit-term .xterm-viewport::-webkit-scrollbar { width: 8px; }
 .flykit-term .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
+
+/* Every agent at once: two columns, rows as needed, each card tall enough for a usable fit(). */
+.flykit-term-grid {
+  flex: 1; min-height: 0; overflow: auto; display: grid; gap: 10px; padding: 10px 12px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(170px, 1fr);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.flykit-term-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 0; }
+.flykit-term-cell-head {
+  display: flex; align-items: center; gap: 6px; flex: none; padding: 0 2px; overflow: hidden;
+  font-size: 11.5px; font-weight: 500; white-space: nowrap; color: var(--dsw-alias-label-tertiary);
+}
+.flykit-term-cell-head svg { flex: none; }
+.flykit-term-cell-head span { overflow: hidden; text-overflow: ellipsis; }
+.flykit-term-cell[aria-selected="true"] .flykit-term-cell-head { color: var(--dsw-alias-label-primary); }
+.flykit-term-cell .flykit-term { padding: 10px 6px 8px 12px; }
+.flykit-term-cell[aria-selected="true"] .flykit-term {
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.18);
+}
 
 .flykit-editor-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-editor-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
