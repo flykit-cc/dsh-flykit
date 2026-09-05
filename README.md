@@ -6,7 +6,7 @@ A plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 `dsh web` GUI into an agent cockpit: a file explorer with an editor, real coding-agent terminals,
 a searchable model picker, and a status line under the composer.
 
-![The dsh web window with the flykit panel open: file tree above, Markdown preview below, status line under the composer](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/hero.png)
+![The dsh web window with the flykit panel open: file tree above, an open TypeScript file below, status line under the composer](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/hero.png)
 
 ## What you get
 
@@ -30,13 +30,13 @@ of output; per-terminal mute. Claude subscription usage bars appear above a Clau
 **Split mode** — Agents stacked above Explorer, so a running terminal and an open file are visible
 at once. The panel also maximises to the full window.
 
-![Split mode: Agents above, Explorer below](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/split.png)
+![Split mode: a live shell above, the Explorer and an open file below](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/split.png)
 
 **Model picker** — replaces the shell's model seat with a search box over the same directory
 `/model` uses, so both stay one state. Provider pills, favourites, recents, reasoning badges, an
 effort row for reasoning models, and a button that refreshes the OpenRouter catalog live.
 
-![Model picker filtered to "qwen", with provider pills and grouped results](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/model-picker.png)
+![Model picker over every configured provider, grouped, with provider pills and reasoning badges](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/model-picker.png)
 
 **Status line** — idle / thinking / running *tool*, a turn timer, the session's git branch and
 dirty count. It also recolours the shell's context ring as the window fills.
