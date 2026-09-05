@@ -48,7 +48,13 @@ those terminals. See the table below.
 
 ## Install
 
-Not on npm yet. Install from GitHub:
+From npm:
+
+```sh
+dsh plugin --profile web add dsh-flykit
+```
+
+From GitHub:
 
 ```sh
 dsh plugin --profile web add github:flykit-cc/dsh-flykit
