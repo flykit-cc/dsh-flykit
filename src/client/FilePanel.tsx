@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Explorer } from './Explorer.tsx'
-import { CloseIcon, SplitIcon } from './icons.tsx'
+import { CloseIcon, MaxIcon, SplitIcon } from './icons.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
 import { SplitPane } from './SplitPane.tsx'
 import { Terminals } from './Terminals.tsx'
@@ -33,12 +33,12 @@ const TABS = [{ id: 'files', label: 'Explorer' }, { id: 'terms', label: 'Agents'
 
 /** Root-overlay entry: the right column, rendered only while the toggle has it open. */
 export function FilePanel() {
-  const { open, sessionId, split, splitRatio } = usePanel()
+  const { open, sessionId, split, splitRatio, max } = usePanel()
   const [tab, setTab] = useState<typeof TABS[number]['id']>('files')
   if (!open || sessionId === null) return null
   return (
-    <aside className="flykit-panel" aria-label="flykit panel">
-      <ResizeHandle />
+    <aside className="flykit-panel" aria-label="flykit panel" data-max={max || undefined}>
+      {!max && <ResizeHandle />}
       <div className="flykit-panel-head">
         {split
           ? <span className="flykit-head-title">flykit</span>
@@ -58,7 +58,18 @@ export function FilePanel() {
           >
             <SplitIcon on={split} />
           </button>
-          <button type="button" className="flykit-headbtn" aria-label="Close panel" onClick={() => setPanel({ open: false })}><CloseIcon /></button>
+          {/* At full width the session header is off-screen, so this is the only way back. */}
+          <button
+            type="button"
+            className="flykit-headbtn"
+            title={max ? 'Restore panel width' : 'Fill the window'}
+            aria-label="Maximise panel"
+            aria-pressed={max}
+            onClick={() => setPanel({ max: !max })}
+          >
+            <MaxIcon on={max} />
+          </button>
+          <button type="button" className="flykit-headbtn" aria-label="Close panel" onClick={() => setPanel({ open: false, max: false })}><CloseIcon /></button>
         </div>
       </div>
       <div className="flykit-panel-body">

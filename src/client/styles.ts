@@ -24,7 +24,7 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 
 .flykit-panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: var(--flykit-panel-w);
-  display: flex; flex-direction: column; min-width: 0;
+  display: flex; flex-direction: column; min-width: 0; box-sizing: border-box;
   background: var(--dsw-alias-bg-base);
   border-left: 0.5px solid var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-primary);

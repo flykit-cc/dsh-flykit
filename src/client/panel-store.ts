@@ -10,6 +10,8 @@ export interface PanelState {
   sessionId: string | null
   /** Stacked layout: Agents above, Explorer below, instead of the tab strip. */
   split: boolean
+  /** Full window width; the shell frame shrinks to nothing behind it. */
+  max: boolean
   /** Agents' share of the panel body height while split. */
   splitRatio: number
   /** The file tree's share of the Explorer height. */
@@ -23,7 +25,7 @@ const KEY = 'flykit.panel'
 /** Persisted keys; `sessionId` is per-tab and never written. */
 type Saved = Omit<PanelState, 'sessionId'>
 
-const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, splitRatio: 0.5, treeRatio: 0.38 }
+const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, splitRatio: 0.5, treeRatio: 0.38 }
 
 function load(): PanelState {
   try {
@@ -33,6 +35,7 @@ function load(): PanelState {
       open: j.open === true,
       width: clamp(j.width ?? DEFAULTS.width),
       split: j.split === true,
+      max: j.max === true,
       splitRatio: clampRatio(j.splitRatio ?? DEFAULTS.splitRatio),
       treeRatio: clampRatio(j.treeRatio ?? DEFAULTS.treeRatio),
     }
@@ -47,11 +50,15 @@ export function clampRatio(r: number): number { return Math.min(0.88, Math.max(0
 let state = load()
 const listeners = new Set<() => void>()
 
-/** The frame shrinks by this CSS var (styles.ts); it lives on body like every --dsw-* token. */
+/**
+ * The frame shrinks by this CSS var (styles.ts); it lives on body like every --dsw-* token.
+ * Maximised it is `100%`, which reads correctly in both consumers: the frame's own
+ * `calc(100% - …)` collapses to zero, and the fixed panel spans the viewport.
+ */
 function reflect(): void {
   if (typeof document === 'undefined') return  // loader self-check runs in bare node
   const b = document.body
-  b.style.setProperty('--flykit-panel-w', `${state.open ? state.width : 0}px`)
+  b.style.setProperty('--flykit-panel-w', !state.open ? '0px' : state.max ? '100%' : `${state.width}px`)
   if (state.open) b.dataset.flykitPanel = ''
   else delete b.dataset.flykitPanel
 }

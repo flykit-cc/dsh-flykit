@@ -111,6 +111,13 @@ export function CloseIcon() {
   return <svg {...svg} aria-hidden><path d="M4 4l8 8M12 4l-8 8" /></svg>
 }
 
+/** Corner arrows: outward to fill the window, inward to give the chat its width back. */
+export function MaxIcon({ on }: { on: boolean }) {
+  return on
+    ? <svg {...svg} aria-hidden><path d="M6.5 2.5V6.5H2.5 M9.5 13.5V9.5h4" /><path d="M6.5 6.5L2 2 M9.5 9.5L14 14" /></svg>
+    : <svg {...svg} aria-hidden><path d="M10 2.5h3.5V6 M6 13.5H2.5V10" /><path d="M13.5 2.5L9.5 6.5 M2.5 13.5L6.5 9.5" /></svg>
+}
+
 /** Stacked-layout glyph: a frame cut in half, lower half filled while split. */
 export function SplitIcon({ on }: { on: boolean }) {
   return (
