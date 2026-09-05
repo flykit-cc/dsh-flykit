@@ -13,7 +13,7 @@ export interface ModelPickerInjected {
   select: (selection: ModelSelection) => Promise<boolean>
 }
 
-interface Row { key: string; provider: ModelProviderGroup; model: ModelCatalogModel }
+interface Row { key: string; provider: ModelProviderGroup; model: ModelCatalogModel; fav?: true }
 
 const RECENT_KEY = 'flykit.models.recent'
 const FAV_KEY = 'flykit.models.fav'
@@ -59,9 +59,10 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
   const visible = useMemo(() => {
     let base = rows
     if (filter === 'recent') base = recent.map(k => byKey.get(k)).filter((r): r is Row => r !== undefined)
-    else if (filter === 'fav') base = fav.map(k => byKey.get(k)).filter((r): r is Row => r !== undefined)
     else if (filter !== 'all') base = rows.filter(r => r.provider.id === filter)
-    return base.filter(r => matches(r, words))
+    // Favorites lead the full list as their own group, ahead of every provider.
+    const favs = filter === 'all' ? fav.map(k => byKey.get(k)).filter((r): r is Row => r !== undefined).map(r => ({ ...r, fav: true as const })) : []
+    return [...favs, ...base].filter(r => matches(r, words))
   }, [rows, filter, recent, fav, byKey, words.join(' ')])
 
   useEffect(() => { setCursor(0) }, [query, filter])
@@ -141,7 +142,6 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
           <div className="fkm-pills">
             <Pill id="all" label="All" count={rows.length} active={filter} set={setFilter} />
             {recent.length > 0 && <Pill id="recent" label="Recent" count={recent.length} active={filter} set={setFilter} />}
-            {fav.length > 0 && <Pill id="fav" label="★" count={fav.length} active={filter} set={setFilter} />}
             {providers.map(p => <Pill key={p.id} id={p.id} label={p.name} count={p.models.length} active={filter} set={setFilter} />)}
           </div>
           <div ref={listEl} className="fkm-list" role="listbox">
@@ -149,10 +149,17 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
             {state.status === 'error' && <div className="fkm-error">{state.error}<button type="button" onClick={load}>Retry</button></div>}
             {visible.length === 0 && state.status !== 'loading' && <div className="fkm-empty">No model matches “{query}”</div>}
             {visible.map((r, i) => {
-              const head = grouped && (i === 0 || visible[i - 1]!.provider.id !== r.provider.id)
+              const section = r.fav === true ? '★' : r.provider.id
+              const prev = visible[i - 1]
+              const head = grouped && (prev === undefined || (prev.fav === true ? '★' : prev.provider.id) !== section)
               return (
-                <div key={r.key}>
-                  {head && <div className="fkm-group">{r.provider.name}<span>{visible.filter(v => v.provider.id === r.provider.id).length}</span></div>}
+                <div key={`${r.fav === true ? 'fav:' : ''}${r.key}`}>
+                  {head && (
+                    <div className="fkm-group" data-fav={r.fav === true || undefined}>
+                      {r.fav === true ? '★ Favorites' : r.provider.name}
+                      <span>{visible.filter(v => (v.fav === true ? '★' : v.provider.id) === section).length}</span>
+                    </div>
+                  )}
                   <div
                     role="option" aria-selected={r.key === currentKey} data-cursor={i === cursor} className="fkm-row"
                     onMouseEnter={() => setCursor(i)} onClick={() => pick(r)}
@@ -160,7 +167,7 @@ export function ModelPicker({ locked, available, directory, load, select }: Mode
                     <span className="fkm-check">{r.key === currentKey && '✓'}</span>
                     <span className="fkm-name">{r.model.name}</span>
                     {r.model.reasoning !== undefined && <span className="fkm-badge">reasoning</span>}
-                    {showProvider && <span className="fkm-provider">{r.provider.name}</span>}
+                    {(showProvider || r.fav === true) && <span className="fkm-provider">{r.provider.name}</span>}
                     <span className="fkm-id">{r.model.id}</span>
                     <button type="button" className="fkm-star" data-on={fav.includes(r.key) || undefined} aria-label="Favorite" onClick={e => { e.stopPropagation(); toggleFav(r.key) }}>★</button>
                   </div>

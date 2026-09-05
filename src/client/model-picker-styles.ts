@@ -54,6 +54,7 @@ export const MODEL_PICKER_CSS = `
   color: var(--dsw-alias-label-tertiary); background: var(--dsw-alias-bg-layer-1);
 }
 .fkm-group span { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.fkm-group[data-fav] { color: var(--dsw-alias-state-warn-primary); }
 .fkm-row {
   display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 6px; border-radius: 8px; cursor: pointer; min-width: 0;
 }
