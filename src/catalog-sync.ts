@@ -12,7 +12,6 @@ export interface ModelProfile {
   contextWindow: number
   maxTokens: number
   input: ('text' | 'image')[]
-  reasoningEfforts?: Record<string, string | null>
 }
 
 interface OpenRouterModel {
@@ -29,7 +28,6 @@ const DEFAULT_MAX_TOKENS = 8_192
 /** Shape one OpenRouter record into the adapter's model profile. */
 export function fromOpenRouter(m: OpenRouterModel): ModelProfile {
   const input = (m.architecture?.input_modalities ?? ['text']).filter((x): x is 'text' | 'image' => x === 'text' || x === 'image')
-  const reasoning = (m.supported_parameters ?? []).some(p => p === 'reasoning' || p === 'reasoning_effort' || p === 'include_reasoning')
   const contextWindow = Math.max(1, Math.floor(m.context_length ?? 32_768))
   return {
     id: m.id,
@@ -37,8 +35,9 @@ export function fromOpenRouter(m: OpenRouterModel): ModelProfile {
     contextWindow,
     maxTokens: Math.max(1, Math.min(contextWindow, Math.floor(m.top_provider?.max_completion_tokens ?? DEFAULT_MAX_TOKENS))),
     input: input.length === 0 ? ['text'] : input,
-    // OpenRouter accepts reasoning.effort low|medium|high; `off` sends nothing.
-    ...(reasoning ? { reasoningEfforts: { off: null, low: 'low', medium: 'medium', high: 'high' } } : {}),
+    // ponytail: no reasoningEfforts here. The adapter merges its own reasoning map under a
+    // known id (a wrong map made DeepSeek V4 reject "reasoning off"); unknown models
+    // run on the provider default until pi-ai ships their entry.
   }
 }
 
