@@ -7,6 +7,7 @@ import type {} from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { gitStatus } from './git.js'
 import { listFiles, readText, writeText } from './files.js'
+import { streamChanges } from './watch.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -24,13 +25,16 @@ function body(req: IncomingMessage): Promise<string> {
 
 export function apply(ctx: Context): void {
   // cwd comes from the session header only; a caller-supplied path is never honoured.
+  const cwdOf = (url: URL) => {
+    const id = url.searchParams.get('sessionId')
+    return id === null ? undefined : ctx.sessions.get(id as SessionId)?.header.cwd
+  }
   const route = (path: string, handle: Handler) => ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path,
     handler: async (req, res) => {
       const url = new URL(req.url ?? '', 'http://x')
-      const id = url.searchParams.get('sessionId')
-      const cwd = id === null ? undefined : ctx.sessions.get(id as SessionId)?.header.cwd
+      const cwd = cwdOf(url)
       res.setHeader('content-type', 'application/json; charset=utf-8')
       res.setHeader('cache-control', 'no-store')
       res.setHeader('x-content-type-options', 'nosniff')
@@ -54,4 +58,13 @@ export function apply(ctx: Context): void {
     const text = await readText(cwd, path)
     return text === null ? null : { text }
   })
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/api/flykit/watch',
+    handler: (req, res) => {
+      const cwd = cwdOf(new URL(req.url ?? '', 'http://x'))
+      if (cwd === undefined) { res.statusCode = 404; res.end(); return }
+      streamChanges(cwd, req, res)
+    },
+  }), 'flykit: /api/flykit/watch')
 }

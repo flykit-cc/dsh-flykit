@@ -8,7 +8,7 @@ import { setPanel, usePanel } from './panel-store.ts'
 const api = (route: string, sessionId: string, path = '') =>
   `/api/flykit/${route}?sessionId=${encodeURIComponent(sessionId)}${path === '' ? '' : `&path=${encodeURIComponent(path)}`}`
 
-function useFiles(sessionId: string): string[] {
+function useFiles(sessionId: string, tick: number): string[] {
   const [files, setFiles] = useState<string[]>([])
   useEffect(() => {
     const ac = new AbortController()
@@ -16,14 +16,26 @@ function useFiles(sessionId: string): string[] {
       .then(r => r.json()).then((j: { files?: string[] }) => setFiles(j.files ?? []))
       .catch(() => {})
     return () => { ac.abort() }
-  }, [sessionId])
+  }, [sessionId, tick])
   return files
 }
 
-interface Doc { path: string; text: string; saved: string; error?: string }
+/** One SSE stream per open panel; the browser reconnects on its own. */
+function useWatch(sessionId: string, onBatch: (paths: string[]) => void): void {
+  const latest = useRef(onBatch)
+  latest.current = onBatch
+  useEffect(() => {
+    const es = new EventSource(api('watch', sessionId))
+    es.onmessage = e => { latest.current((JSON.parse(e.data) as { paths: string[] }).paths) }
+    return () => { es.close() }
+  }, [sessionId])
+}
+
+interface Doc { path: string; text: string; saved: string; error?: string; stale?: boolean }
 
 function useDoc(sessionId: string, path: string | null) {
   const [doc, setDoc] = useState<Doc | null>(null)
+  const [reloadTick, setReloadTick] = useState(0)
   useEffect(() => {
     if (path === null) { setDoc(null); return }
     const ac = new AbortController()
@@ -34,7 +46,15 @@ function useDoc(sessionId: string, path: string | null) {
       })
       .catch(() => {})
     return () => { ac.abort() }
-  }, [sessionId, path])
+  }, [sessionId, path, reloadTick])
+
+  /** Disk changed under the open file: clean docs follow it, dirty ones keep your edits and get a notice. */
+  const diskChanged = () => setDoc(d => {
+    if (d === null) return d
+    if (d.text === d.saved) { setReloadTick(t => t + 1); return d }
+    return { ...d, stale: true }
+  })
+  const reload = () => setReloadTick(t => t + 1)
 
   const save = () => {
     if (doc === null || doc.text === doc.saved) return
@@ -43,14 +63,23 @@ function useDoc(sessionId: string, path: string | null) {
       .then(r => { if (r.ok) setDoc(d => d === null || d.path !== doc.path ? d : { ...d, saved: text }) })
       .catch(() => {})
   }
-  return { doc, setText: (text: string) => setDoc(d => d === null ? d : { ...d, text }), save }
+  return { doc, setText: (text: string) => setDoc(d => d === null ? d : { ...d, text }), save, diskChanged, reload }
 }
 
 function FilesTab({ sessionId }: { sessionId: string }) {
-  const files = useFiles(sessionId)
+  const [tick, setTick] = useState(0)
+  const files = useFiles(sessionId, tick)
   const [filter, setFilter] = useState('')
   const [path, setPath] = useState<string | null>(null)
-  const { doc, setText, save } = useDoc(sessionId, path)
+  const [changed, setChanged] = useState<Set<string>>(() => new Set())
+  const { doc, setText, save, diskChanged, reload } = useDoc(sessionId, path)
+
+  useWatch(sessionId, paths => {
+    setTick(t => t + 1)
+    if (paths.length > 0) setChanged(c => new Set([...c, ...paths.filter(p => p !== path)]))
+    if (path !== null && (paths.length === 0 || paths.includes(path))) diskChanged()
+  })
+  const select = (p: string) => { setPath(p); setChanged(c => { if (!c.has(p)) return c; const n = new Set(c); n.delete(p); return n }) }
   const dirty = doc !== null && doc.text !== doc.saved
   const [preview, setPreview] = useState(true)
   const canPreview = doc !== null && previewKind(doc.path) !== null
@@ -60,7 +89,7 @@ function FilesTab({ sessionId }: { sessionId: string }) {
     <>
       <div className="flykit-files-pane">
         <input className="flykit-filter" placeholder="Filter files…" value={filter} onChange={e => setFilter(e.currentTarget.value)} />
-        <FileTree files={files} filter={filter} selected={path} onSelect={setPath} />
+        <FileTree files={files} filter={filter} selected={path} changed={changed} onSelect={select} />
       </div>
       <div className="flykit-editor-pane">
         {doc !== null && (
@@ -72,6 +101,12 @@ function FilesTab({ sessionId }: { sessionId: string }) {
               </button>
             )}
             <button type="button" className="flykit-save" disabled={!dirty} onClick={save}>Save</button>
+          </div>
+        )}
+        {doc?.stale === true && (
+          <div className="flykit-notice">
+            <span>Changed on disk. Your edits are kept.</span>
+            <button type="button" onClick={reload}>Reload</button>
           </div>
         )}
         {doc?.error !== undefined && <p className="flykit-empty">{doc.error}</p>}

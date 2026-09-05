@@ -77,6 +77,17 @@ body[data-flykit-dragging] { cursor: col-resize; user-select: none; }
 .flykit-tree svg { flex: none; }
 .flykit-tree-chev { display: inline-grid; place-items: center; width: 12px; flex: none; }
 .flykit-tree-label { overflow: hidden; text-overflow: ellipsis; }
+.flykit-tree-dot { flex: none; width: 6px; height: 6px; margin-left: auto; border-radius: 50%; background: var(--dsw-alias-state-warn-primary); }
+.flykit-notice {
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px; font-size: 12px;
+  color: var(--dsw-alias-state-warn-label); background: var(--dsw-alias-state-warn-tertiary);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+}
+.flykit-notice button {
+  all: unset; cursor: pointer; padding: 2px 10px; border-radius: 999px; font-weight: 500;
+  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base);
+}
+.flykit-notice button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .flykit-editor-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .flykit-editor-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
