@@ -56,7 +56,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
           )}
         </div>
       </div>
-      {terms.some(t => t.agent === 'claude') && <ClaudeUsage />}
+      {terms.find(t => t.id === active)?.agent === 'claude' && <ClaudeUsage />}
       <div className="flykit-term-body">
         {active !== null
           ? <TerminalView key={active} sessionId={sessionId} id={active} />
