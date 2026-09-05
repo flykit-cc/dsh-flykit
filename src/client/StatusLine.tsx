@@ -8,6 +8,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 // Type-only: merge the contextPressure key into SessionProjectionMap.
 import type {} from '@deepseek-ai/dsh-token-meter/client'
+import { api } from './api.ts'
 import { buildSegments, ringToken } from './segments.ts'
 import type { StatusFacts } from './segments.ts'
 
@@ -51,15 +52,19 @@ function useGit(sessionId: SessionId, tick: number): StatusFacts['git'] {
   const [git, setGit] = useState<StatusFacts['git']>(undefined)
   useEffect(() => {
     const ac = new AbortController()
-    // A turn settles many nodes in a burst; one reading per burst is enough.
-    const timer = setTimeout(() => {
-      fetch(`/api/flykit/git?sessionId=${encodeURIComponent(sessionId)}`, { cache: 'no-store', signal: ac.signal })
-        .then(r => r.json())
+    let timer: ReturnType<typeof setTimeout>
+    const read = (retry: boolean): void => {
+      fetch(api('git', sessionId), { cache: 'no-store', signal: ac.signal })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
         .then((j: { branch?: string | null; dirty?: number }) => {
           setGit(j.branch === undefined ? undefined : { branch: j.branch, dirty: j.dirty ?? 0 })
         })
-        .catch(() => {})  // aborted or offline: keep the last reading
-    }, 400)
+        // Aborted or offline: keep the last reading. Right after a host restart the
+        // session is not attached yet and the route 404s — one retry catches that.
+        .catch(() => { if (retry && !ac.signal.aborted) timer = setTimeout(() => read(false), 1_500) })
+    }
+    // A turn settles many nodes in a burst; one reading per burst is enough.
+    timer = setTimeout(() => read(true), 400)
     return () => { clearTimeout(timer); ac.abort() }
   }, [sessionId, tick])
   return git
