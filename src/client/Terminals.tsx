@@ -45,7 +45,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
   const latest = useRef({ active, muted, panelOpen })
   latest.current = { active, muted, panelOpen }
 
-  /** Output burst then silence = the agent answered. Ring unless you are already looking at it. */
+  /** Output burst then silence = the agent answered. Ring every time; the unread dot only marks agents you are not on. */
   const observe = (list: TermInfo[]) => {
     for (const t of list) {
       const a = activity.current.get(t.id) ?? { seq: t.seq, burst: 0, quiet: 0 }
@@ -53,12 +53,12 @@ export function Terminals({ sessionId }: { sessionId: string }) {
       else if (a.burst >= ANSWER_MIN_CHARS && ++a.quiet >= QUIET_POLLS) {
         a.burst = 0; a.quiet = 0
         const { active: cur, muted: m, panelOpen: open } = latest.current
-        const watching = cur === t.id && open && document.visibilityState === 'visible'
-        if (!watching && !m.has(t.id)) {
+        if (!m.has(t.id)) {
           chime()
-          setUnread(u => new Set(u).add(t.id))
           setRinging(r => new Set(r).add(t.id))
           setTimeout(() => setRinging(r => { const n = new Set(r); n.delete(t.id); return n }), RING_MS)
+          const watching = cur === t.id && open && document.visibilityState === 'visible'
+          if (!watching) setUnread(u => new Set(u).add(t.id))
         }
       }
       a.seq = t.seq
