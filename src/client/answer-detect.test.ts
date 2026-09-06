@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
-import { newActivity, step, ANSWER_MIN_CHARS, QUIET_POLLS } from './answer-detect.ts'
+import { newActivity, step, ANSWER_MIN_CHARS, IDLE_MAX_CHARS, QUIET_POLLS } from './answer-detect.ts'
 
 /** Feed a run of poll readings and collect the polls that reported an answer. */
 function run(seqs: number[]): number[] {
@@ -46,6 +46,20 @@ test('an idle trickle never rings, however long it runs', () => {
     seqs.push(seq)
   }
   assert.deepEqual(run(seqs), [])
+})
+
+test('a clock in the status line redraws every poll; that is still quiet', () => {
+  // Measured on Claude Code with a ttl countdown: ~160 chars per 2s poll, for ever.
+  const tick = IDLE_MAX_CHARS - 1
+  const seqs: number[] = []
+  let seq = 0
+  const push = (n: number) => { seq += n; seqs.push(seq) }
+  for (let i = 0; i < 5; i++) push(tick)            // startup already settled; idle
+  push(1_800); push(2_900); push(600)               // working, then the answer lands
+  for (let i = 0; i < 40; i++) push(tick)           // idle again, clock ticking
+  const a = newActivity(5_000)
+  const hits = seqs.filter(s => step(a, s))
+  assert.equal(hits.length, 1)
 })
 
 test('two answers ring twice', () => {

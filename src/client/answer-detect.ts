@@ -12,6 +12,10 @@
  *
  * So the burst is discarded at every silent window, and the first settle only
  * arms the detector instead of reporting an answer.
+ *
+ * "Silent" tolerates a trickle: a status line with a clock in it redraws every
+ * second (~160 chars per poll, measured on Claude Code), so waiting for zero
+ * output would wait for ever.
  */
 export interface Activity {
   /** Last character count seen. */
@@ -24,7 +28,10 @@ export interface Activity {
   armed: boolean
 }
 
-export const ANSWER_MIN_CHARS = 200
+export const ANSWER_MIN_CHARS = 400
+/** A poll that brings fewer characters than this is idle redraw, not output. */
+// ponytail: fixed threshold; measure per terminal if some TUI idles hotter than this.
+export const IDLE_MAX_CHARS = 300
 export const QUIET_POLLS = 2
 
 /**
@@ -39,7 +46,7 @@ export function newActivity(seq: number): Activity {
 /** Fold one poll into the activity. Returns true exactly once per answer. */
 export function step(a: Activity, seq: number): boolean {
   let answered = false
-  if (seq > a.seq) {
+  if (seq - a.seq >= IDLE_MAX_CHARS) {
     a.burst += seq - a.seq
     a.quiet = 0
   } else if (++a.quiet === QUIET_POLLS) {
