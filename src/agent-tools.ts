@@ -105,13 +105,15 @@ function runHeadless(agent: 'claude' | 'pi' | 'codex', prompt: string, cwd: stri
     : agent === 'codex' ? ['exec', prompt]
     : ['-p', prompt]
   return new Promise(resolve => {
-    execFile(agent, argv, { cwd, timeout: timeoutMs, maxBuffer: RUN_MAX_BUFFER, signal, encoding: 'utf8' }, (err, stdout, stderr) => {
+    const child = execFile(agent, argv, { cwd, timeout: timeoutMs, maxBuffer: RUN_MAX_BUFFER, signal, encoding: 'utf8' }, (err, stdout, stderr) => {
       // Not a PTY, so this is ordinary text; only colour codes need removing.
       const text = stripAnsi(stdout).trim()
       if (text === '') resolve(err === null ? '(no output)' : `${agent} failed: ${err.message}\n${stripAnsi(stderr).trim()}`)
       else if (agent === 'claude') resolve(claudeResult(text))
       else resolve(text)
     })
+    // codex waits for stdin EOF before it answers; with an open pipe it sits there until the timeout.
+    child.stdin?.end()
   })
 }
 
