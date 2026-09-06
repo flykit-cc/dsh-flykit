@@ -66,7 +66,7 @@ export function FilePanel() {
           >
             <MaxIcon on={max} />
           </button>
-          <button type="button" className="flykit-headbtn" aria-label="Close panel" onClick={() => setPanel({ open: false, max: false })}><CloseIcon /></button>
+          <button type="button" className="flykit-headbtn" aria-label="Close panel" onClick={() => setPanel({ open: false })}><CloseIcon /></button>
         </div>
       </div>
       <div className="flykit-panel-body">
