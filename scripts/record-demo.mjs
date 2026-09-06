@@ -1,7 +1,10 @@
 /**
  * Records the cockpit doing real work, for the README and flykit.cc.
  *
- *   node scripts/record-demo.mjs [--out docs/media] [--port 3080]
+ *   node scripts/record-demo.mjs [--out docs/media] [--port 3080] [--only picker]
+ *
+ * `--only picker` films just the model picker, as model-picker.*: a short clip
+ * for a comment or an issue rather than the full tour.
  *
  * Needs `dsh web` already running; the script reads its token URL out of
  * /tmp/dsh-web-<port>.log and never prints it. Produces cockpit.webm from
@@ -28,6 +31,8 @@ const SESSION = arg('session', '')
 /** Workspace holding it. A collapsed workspace keeps its sessions out of the DOM. */
 const WORKSPACE = arg('workspace', '')
 const OUT = arg('out', 'docs/media')
+const ONLY = arg('only', '')
+const NAME = ONLY === 'picker' ? 'model-picker' : 'cockpit'
 const WIDTH = 1280
 const HEIGHT = 800
 
@@ -112,6 +117,8 @@ async function main() {
   })
   await pause(800)
 
+  let startedAt = Date.now()
+  if (ONLY !== 'picker') {
   // 1. Open the panel.
   await page.evaluate(() => {
     ;[...document.querySelectorAll('button')]
@@ -134,7 +141,7 @@ async function main() {
   await pause(600)
 
   // Everything from here is the take; the setup above gets trimmed off.
-  const startedAt = Date.now()
+  startedAt = Date.now()
 
   await page.evaluate(() => {
     ;[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Shell')?.click()
@@ -185,11 +192,13 @@ async function main() {
   await page.evaluate(() => document.querySelector('[aria-label="Split view"]')?.click())
   await pause(800)
 
+  }
+
   // 5. The model picker over every configured provider.
   await page.evaluate(() => document.querySelector('.fkm-trigger')?.click())
   await until(page, 'model picker', () => document.querySelector('.fkm-pop') !== null)
   await pause(1200)
-  for (const q of ['flash', 'deepseek v4']) {
+  for (const q of ONLY === 'picker' ? ['flash', 'qwen', 'deepseek v4'] : ['flash', 'deepseek v4']) {
     await page.evaluate(text => {
       const i = document.querySelector('.fkm-search input')
       const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
@@ -208,20 +217,20 @@ async function main() {
   // Playwright names the file by page id; give it a stable name.
   const webm = (await readdir(raw)).find(f => f.endsWith('.webm'))
   if (webm === undefined) throw new Error('playwright wrote no video')
-  const src = join(OUT, 'cockpit.webm')
+  const src = join(OUT, `${NAME}.webm`)
   await rename(join(raw, webm), src)
   await rm(raw, { recursive: true, force: true })
 
   // An mp4 for the web (autoplay-friendly, a fraction of a GIF's weight) and a
   // GIF for places that will not play video, like a GitHub README.
-  const mp4 = join(OUT, 'cockpit.mp4')
+  const mp4 = join(OUT, `${NAME}.mp4`)
   // -ss drops the setup: opening a workspace shows every workspace name.
   const trim = ['-ss', leadIn.toFixed(2)]
   await run('ffmpeg', ['-y', ...trim, '-i', src, '-movflags', '+faststart', '-pix_fmt', 'yuv420p',
     '-vf', `scale=${WIDTH}:-2`, '-c:v', 'libx264', '-crf', '26', '-preset', 'slow', '-an', mp4])
 
   const palette = join(OUT, '.palette.png')
-  const gif = join(OUT, 'cockpit.gif')
+  const gif = join(OUT, `${NAME}.gif`)
   const gifScale = 'fps=12,scale=900:-1:flags=lanczos'
   await run('ffmpeg', ['-y', ...trim, '-i', src, '-vf', `${gifScale},palettegen=stats_mode=diff`, palette])
   await run('ffmpeg', ['-y', ...trim, '-i', src, '-i', palette,
