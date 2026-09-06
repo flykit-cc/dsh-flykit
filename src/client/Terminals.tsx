@@ -82,7 +82,11 @@ export function Terminals({ sessionId }: { sessionId: string }) {
   const open = (agent: string) => {
     setPicking(false)
     fetch(api('terms', sessionId, { agent }), { method: 'POST' })
-      .then(r => r.json()).then((t: TermInfo) => { setTerms(l => [...l, t]); select(t.id) })
+      .then(r => r.json()).then((t: TermInfo) => {
+        // Seen at birth, before its startup draw, so the draw arms rather than rings.
+        activity.current.set(t.id, newActivity(t.seq))
+        setTerms(l => [...l, t]); select(t.id)
+      })
       .catch(() => {})
   }
   const close = (id: string) => {

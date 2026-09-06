@@ -19,6 +19,13 @@ test('the startup draw arms the detector but does not ring', () => {
   assert.deepEqual(run(burstThenQuiet(0, 900, 3)), [])
 })
 
+test('a terminal first seen with history is armed: its next answer rings', () => {
+  // Page reload, or a poll that first lists a terminal after its startup draw.
+  const a = newActivity(5_000)
+  const hits = burstThenQuiet(5_000, 500, 3).filter(s => step(a, s))
+  assert.equal(hits.length, 1)
+})
+
 test('an answer after startup rings exactly once', () => {
   const seqs = [...burstThenQuiet(0, 900, 3), ...burstThenQuiet(900, 500, 4)]
   assert.equal(run(seqs).length, 1)

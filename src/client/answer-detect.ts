@@ -27,8 +27,13 @@ export interface Activity {
 export const ANSWER_MIN_CHARS = 200
 export const QUIET_POLLS = 2
 
+/**
+ * Output already on screen at first sight is history, not a startup draw still to
+ * come: after a page reload, or when the poll first lists a terminal that has
+ * finished drawing. Arming from it is what lets the very next answer ring.
+ */
 export function newActivity(seq: number): Activity {
-  return { seq, burst: 0, quiet: 0, armed: false }
+  return { seq, burst: 0, quiet: 0, armed: seq >= ANSWER_MIN_CHARS }
 }
 
 /** Fold one poll into the activity. Returns true exactly once per answer. */
