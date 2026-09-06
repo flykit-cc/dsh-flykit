@@ -18,6 +18,8 @@ export interface PanelState {
   splitRatio: number
   /** The file tree's share of the Explorer height. */
   treeRatio: number
+  /** Which pane shows while not split. */
+  tab: 'files' | 'terms'
 }
 
 export const PANEL_MIN = 320
@@ -27,7 +29,7 @@ const KEY = 'flykit.panel'
 /** Persisted keys; `sessionId` is per-tab and never written. */
 type Saved = Omit<PanelState, 'sessionId'>
 
-const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, grid: false, splitRatio: 0.5, treeRatio: 0.38 }
+const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, grid: false, splitRatio: 0.5, treeRatio: 0.38, tab: 'files' }
 
 function load(): PanelState {
   try {
@@ -41,6 +43,7 @@ function load(): PanelState {
       grid: j.grid === true,
       splitRatio: clampRatio(j.splitRatio ?? DEFAULTS.splitRatio),
       treeRatio: clampRatio(j.treeRatio ?? DEFAULTS.treeRatio),
+      tab: j.tab === 'terms' ? 'terms' : 'files',
     }
   } catch { return { ...DEFAULTS } }
 }

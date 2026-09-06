@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Explorer } from './Explorer.tsx'
 import { CloseIcon, MaxIcon, SplitIcon } from './icons.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
@@ -33,8 +33,7 @@ const TABS = [{ id: 'files', label: 'Explorer' }, { id: 'terms', label: 'Agents'
 
 /** Root-overlay entry: the right column, rendered only while the toggle has it open. */
 export function FilePanel() {
-  const { open, sessionId, split, splitRatio, max } = usePanel()
-  const [tab, setTab] = useState<typeof TABS[number]['id']>('files')
+  const { open, sessionId, split, splitRatio, max, tab } = usePanel()
   if (!open || sessionId === null) return null
   return (
     <aside className="flykit-panel" aria-label="flykit panel" data-max={max || undefined}>
@@ -42,7 +41,7 @@ export function FilePanel() {
       <div className="flykit-panel-head">
         <div className="flykit-tabs" role="tablist" data-split={split || undefined}>
           {/* Split shows both views, so both names read as active; a click still picks the one to focus when split ends. */}
-          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={split || tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
+          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={split || tab === t.id} onClick={() => setPanel({ tab: t.id })}>{t.label}</button>)}
         </div>
         <div className="flykit-head-actions">
           <button

@@ -39,6 +39,9 @@ export function TerminalView({ sessionId, id, autoFocus = true }: { sessionId: s
     const sendSize = () => {
       // A hidden pane measures 0: fitting there would resize the PTY to a stub and reflow its output.
       if (el.clientWidth === 0 || el.clientHeight === 0) return
+      // xterm measures its cell size in its own IntersectionObserver, which can run after ours;
+      // until then fit() sees a 0px cell and silently keeps the 80x24 default.
+      if (fit.proposeDimensions() === undefined) { setTimeout(sendSize, 50); return }
       fit.fit()
       const size = `${term.cols}x${term.rows}`
       if (size === lastSize) return
