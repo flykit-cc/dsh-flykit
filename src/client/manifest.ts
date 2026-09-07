@@ -1,6 +1,6 @@
 // The shell ships its own manifest ("DeepSeek Harness", DeepSeek icon). This
 // points the same <link> at flykit's, served by the host, so "Install page as
-// app" puts the flykit glyph and the name "dsh" in the Dock. Chrome re-reads
+// app" puts the flykit glyph and name in the Dock. Chrome re-reads
 // on href change, but only from a same-origin URL: a data: manifest is parsed
 // yet never used for installing.
 const OURS = '/api/flykit/manifest.webmanifest'
