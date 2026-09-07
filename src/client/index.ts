@@ -18,6 +18,13 @@ export const inject = ['slots']
 
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => installStyles(), 'flykit: styles')
+  // Chrome fetches a manifest without cookies unless the link says use-credentials; behind
+  // Cloudflare Access that fetch is a 302 to the login page and Chrome offers only a page shortcut.
+  ctx.effect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
+    if (link !== null && link.crossOrigin !== 'use-credentials') { link.crossOrigin = 'use-credentials'; link.href = link.href }
+    return () => {}
+  }, 'flykit: manifest credentials')
   ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(
     { name: 'conversation.composer.dock', id: 'flykit', order: 10 },
     StatusLine,
