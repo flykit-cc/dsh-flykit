@@ -30,7 +30,8 @@ export function Apps({ hidden }: { hidden: boolean }) {
       )}
       {apps === null
         ? <div className="flykit-apps-note">Starting…</div>
-        : app !== undefined && <iframe key={`${app.id}:${tick}`} src={app.url} title={app.label} allow="clipboard-read; clipboard-write" />}
+        // Every app stays mounted; switching only hides one, so each keeps its own live view and nothing reconnects.
+        : apps.map(a => <iframe key={`${a.id}:${tick}`} hidden={a.id !== app?.id} src={a.url} title={a.label} allow="clipboard-read; clipboard-write" />)}
     </div>
   )
 }

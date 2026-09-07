@@ -32,6 +32,12 @@ at once. The panel also maximises to the full window.
 
 ![Split mode: a live shell above, the Explorer and an open file below](https://raw.githubusercontent.com/flykit-cc/dsh-flykit/main/docs/screenshots/split.png)
 
+**Apps** — WhatsApp Web inside the panel. A headless Google Chrome owned by the host (`apps/whatsapp/`)
+runs web.whatsapp.com; the tab shows its live CDP screencast and forwards clicks, typing, wheel and
+paste. Opening the tab starts that Chrome if it is down. The linked session lives in
+`~/.dsh/flykit/whatsapp/`, outside the package. First time: `cd apps/whatsapp && node wa.mjs login`
+prints the QR in the terminal (the tab shows it too). Details and what was verified: `apps/whatsapp/README.md`.
+
 **Model picker** — replaces the shell's model seat with a search box over the same directory
 `/model` uses, so both stay one state. Provider pills, favourites, recents, reasoning badges, an
 effort row for reasoning models, and a button that refreshes the OpenRouter catalog live.
@@ -137,6 +143,10 @@ The usage bars read the Claude Code login already on this machine — the macOS 
 endpoint from the host process. The OAuth token never leaves that process and is never sent to the
 browser; the browser receives only the plan name, the percentages and their reset times. With no
 Claude Code login present, the bars stay hidden.
+
+The Apps tab runs WhatsApp Web in a separate headless Chrome on this machine; its CDP port (9222)
+and viewer (9223) bind to 127.0.0.1 only, and the linked WhatsApp session is stored under
+`~/.dsh/flykit/`, never inside the package or a repo.
 
 The only other network call flykit makes is the OpenRouter catalog fetch described above. File
 contents, terminal output and git status stay between the `dsh` host process and your browser.

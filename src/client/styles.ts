@@ -73,6 +73,7 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 .flykit-apps { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--dsw-alias-bg-layer-1); }
 .flykit-apps[hidden] { display: none; }
 .flykit-apps iframe { flex: 1; width: 100%; border: 0; background: var(--dsw-alias-bg-layer-1); }
+.flykit-apps iframe[hidden] { display: none; }
 .flykit-apps-tabs { display: flex; gap: 6px; padding: 8px 12px 0; }
 .flykit-apps-tabs button { all: unset; cursor: pointer; padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .flykit-apps-tabs button[aria-selected="true"] { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }

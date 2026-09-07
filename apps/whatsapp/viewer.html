@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WhatsApp</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; color: #ddd; font: 13px system-ui; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; padding: 6px 10px; background: #222; display: none; }
+  #bar.qr { display: block; background: #075e54; }
+  #bar.err { display: block; background: #7a1f1f; }
+  canvas { display: block; width: 100%; height: 100%; object-fit: contain; outline: none; cursor: default; }
+</style>
+<div id="bar"></div>
+<canvas id="c" tabindex="0"></canvas>
+<script>
+// Talks CDP straight to headless Chrome (allowed via --remote-allow-origins). Screencast in, input out.
+const c = document.getElementById('c'), ctx = c.getContext('2d'), bar = document.getElementById('bar');
+const HOST = location.host; // same server as /json/list
+let ws, id = 0, meta = { deviceWidth: 1280, deviceHeight: 800 }, pend = new Map();
+const send = (method, params = {}) => new Promise(r => { pend.set(++id, r); ws.send(JSON.stringify({ id, method, params })); });
+const note = (cls, text) => { bar.className = cls; bar.textContent = text; };
+
+async function connect() {
+  const list = await fetch('/json/list').then(r => r.json()).catch(() => null);
+  const page = list && list.find && list.find(t => t.type === 'page' && t.url.startsWith('https://web.whatsapp.com'));
+  if (!page) { note('err', 'CDP server down or no WhatsApp tab (node wa.mjs start)'); return setTimeout(connect, 2000); }
+  ws = new WebSocket(page.webSocketDebuggerUrl.replace(/\/\/[^/]+/, '//' + HOST.replace(/:\d+$/, ':' + new URL(page.webSocketDebuggerUrl).port)));
+  ws.onclose = () => { note('err', 'disconnected, retrying'); setTimeout(connect, 2000); };
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.method === 'Page.screencastFrame') return frame(m.params);
+    if (pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id); }
+  };
+  await new Promise(r => ws.onopen = r);
+  note('', '');
+  await send('Page.enable');
+  fit();
+  poll();
+}
+// Chrome's viewport follows this page's size (the DSH panel, a tab, whatever), so WhatsApp reflows instead of being letterboxed.
+// WhatsApp's two-column layout needs ~800 CSS px; narrower than that the page is laid out at 800 and the frame is scaled down.
+const MIN_W = 800;
+let fitTimer;
+function fit() {
+  const w = innerWidth, h = innerHeight, dsf = Math.min(devicePixelRatio || 1, 2), s = Math.max(1, MIN_W / w);
+  if (!w || !h || !ws || ws.readyState !== 1) return;
+  send('Emulation.setDeviceMetricsOverride', { width: Math.round(w * s), height: Math.round(h * s), deviceScaleFactor: dsf, mobile: false });
+  send('Page.stopScreencast');
+  send('Page.startScreencast', { format: 'jpeg', quality: 60, maxWidth: Math.round(w * dsf), maxHeight: Math.round(h * dsf), everyNthFrame: 1 });
+}
+onresize = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fit, 200); };
+function frame(p) {
+  meta = p.metadata;
+  const img = new Image();
+  img.onload = () => { if (c.width !== img.width || c.height !== img.height) { c.width = img.width; c.height = img.height; } ctx.drawImage(img, 0, 0); };
+  img.src = 'data:image/jpeg;base64,' + p.data;
+  setTimeout(() => send('Page.screencastFrameAck', { sessionId: p.sessionId }), 33); // ponytail: ~30 fps cap via delayed ack
+}
+async function poll() { // login-state banner
+  while (ws.readyState === 1) {
+    const r = await send('Runtime.evaluate', { returnByValue: true, expression: `document.querySelector('#pane-side') ? 'ready' : document.querySelector('canvas') ? 'qr' : 'loading'` });
+    const s = r.result && r.result.result && r.result.result.value;
+    if (s === 'qr') note('qr', 'Scan this QR with your phone: WhatsApp > Linked devices > Link a device'); else if (s === 'ready') note('', '');
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+// --- input forwarding ---
+const mods = e => (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.metaKey ? 4 : 0) | (e.shiftKey ? 8 : 0);
+const pos = e => { // canvas is object-fit: contain -> map into the drawn image box
+  const r = c.getBoundingClientRect(), s = Math.min(r.width / c.width, r.height / c.height), ox = (r.width - c.width * s) / 2, oy = (r.height - c.height * s) / 2;
+  return { x: (e.clientX - r.left - ox) / s * (meta.deviceWidth / c.width), y: (e.clientY - r.top - oy) / s * (meta.deviceHeight / c.height) };
+};
+const BTN = ['left', 'middle', 'right'];
+const mouse = (type, e) => ws && ws.readyState === 1 && send('Input.dispatchMouseEvent', { type, ...pos(e), button: BTN[e.button] || 'none', buttons: e.buttons, clickCount: e.detail || 0, modifiers: mods(e) });
+c.onmousedown = e => { c.focus(); mouse('mousePressed', e); };
+c.onmouseup = e => mouse('mouseReleased', e);
+c.onmousemove = e => mouse('mouseMoved', e);
+c.oncontextmenu = e => e.preventDefault();
+c.onwheel = e => { e.preventDefault(); ws && send('Input.dispatchMouseEvent', { type: 'mouseWheel', ...pos(e), deltaX: e.deltaX, deltaY: e.deltaY, modifiers: mods(e) }); };
+const VK = { Enter: 13, Backspace: 8, Tab: 9, Escape: 27, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Delete: 46, Home: 36, End: 35, PageUp: 33, PageDown: 34, ' ': 32 };
+const key = (type, e) => {
+  const p = { type, key: e.key, code: e.code, modifiers: mods(e), windowsVirtualKeyCode: VK[e.key] ?? (e.key.length === 1 ? e.key.toUpperCase().charCodeAt(0) : 0) };
+  if (type === 'keyDown') { if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) p.text = p.unmodifiedText = e.key; else if (e.key === 'Enter') p.text = '\r'; else p.type = 'rawKeyDown'; }
+  return send('Input.dispatchKeyEvent', p);
+};
+c.onkeydown = e => { e.preventDefault(); ws && key('keyDown', e); };
+c.onkeyup = e => { e.preventDefault(); ws && key('keyUp', e); };
+c.onpaste = e => { e.preventDefault(); const t = e.clipboardData.getData('text'); if (t && ws) send('Input.insertText', { text: t }); };
+connect();
+</script>

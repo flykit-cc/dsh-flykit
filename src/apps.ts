@@ -1,17 +1,15 @@
 import { execFile } from 'node:child_process'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
- * Web apps shown in the panel's Apps tab. Each is a local server that owns a headless
- * Chrome and serves an embeddable viewer (see github.com/kaiomp/whatsapp). Telegram later
- * is one more row with its own dir, port and start URL.
+ * Web apps shown in the panel's Apps tab. Each is a local server in `apps/<id>/` that owns a
+ * headless Chrome and serves an embeddable viewer. Telegram later is one more row with its own
+ * dir, port and start URL.
  */
 export interface App { id: string; label: string; url: string; dir: string }
 
-// ponytail: one hardcoded row; move to settings when a second machine or app needs a different path.
 export const APPS: App[] = [
-  { id: 'whatsapp', label: 'WhatsApp', url: 'http://127.0.0.1:9223/', dir: process.env['FLYKIT_WHATSAPP_DIR'] ?? join(homedir(), 'Documents/GitHub/whatsapp') },
+  { id: 'whatsapp', label: 'WhatsApp', url: 'http://127.0.0.1:9223/', dir: fileURLToPath(new URL('../apps/whatsapp/', import.meta.url)) },
 ]
 
 const up = (app: App) => fetch(new URL('json/list', app.url), { signal: AbortSignal.timeout(2000) }).then(r => r.ok, () => false)
