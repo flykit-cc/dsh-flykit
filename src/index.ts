@@ -18,7 +18,7 @@ import { screenText } from './term-io.js'
 import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
 import { watchAnswers } from './notify.js'
-import { APP_ICON_PNG, APP_MANIFEST } from './app-icon.js'
+import { APP_ICON_PNG, manifestFor } from './app-icon.js'
 import { ensureApps } from './apps.js'
 
 export const name = 'flykit'
@@ -162,10 +162,10 @@ export function apply(ctx: Context): void {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact',
       path,
-      handler: (_req, res) => {
+      handler: (req, res) => {
         res.setHeader('content-type', 'application/manifest+json; charset=utf-8')
         res.setHeader('cache-control', 'no-store')
-        res.end(JSON.stringify(APP_MANIFEST))
+        res.end(JSON.stringify(manifestFor(req.headers.host)))
       },
     }), `flykit: ${path}`)
   }
