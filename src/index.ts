@@ -19,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
 import { watchAnswers } from './notify.js'
 import { APP_ICON_PNG, APP_MANIFEST } from './app-icon.js'
+import { ensureApps } from './apps.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions', 'agents']
@@ -144,6 +145,16 @@ export function apply(ctx: Context): void {
       catch (e) { res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) })) }
     },
   }), 'flykit: /api/flykit/claude-usage')
+  // Apps tab: machine-global local servers (WhatsApp Web in headless Chrome), started on demand.
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/api/flykit/apps',
+    handler: async (_req, res) => {
+      res.setHeader('content-type', 'application/json; charset=utf-8')
+      res.setHeader('cache-control', 'no-store')
+      res.end(JSON.stringify({ apps: await ensureApps() }))
+    },
+  }), 'flykit: /api/flykit/apps')
   // Web app manifest + icon: Chrome installs from a same-origin manifest only (see client/manifest.ts).
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

@@ -18,8 +18,8 @@ export interface PanelState {
   splitRatio: number
   /** The file tree's share of the Explorer height. */
   treeRatio: number
-  /** Which pane shows while not split. */
-  tab: 'files' | 'terms'
+  /** Which pane shows; 'apps' covers the Explorer/Agents pair whether split or not. */
+  tab: 'files' | 'terms' | 'apps'
   /** Focused terminal id; survives a panel remount (hot reload, tab switch) instead of snapping to the first tab. */
   term: string | null
 }
@@ -45,7 +45,7 @@ function load(): PanelState {
       grid: j.grid === true,
       splitRatio: clampRatio(j.splitRatio ?? DEFAULTS.splitRatio),
       treeRatio: clampRatio(j.treeRatio ?? DEFAULTS.treeRatio),
-      tab: j.tab === 'terms' ? 'terms' : 'files',
+      tab: j.tab === 'terms' || j.tab === 'apps' ? j.tab : 'files',
       term: typeof j.term === 'string' ? j.term : null,
     }
   } catch { return { ...DEFAULTS } }

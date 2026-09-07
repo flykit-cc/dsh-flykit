@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Apps } from './Apps.tsx'
 import { Explorer } from './Explorer.tsx'
 import { CloseIcon, MaxIcon, SplitIcon } from './icons.tsx'
 import { setPanel, usePanel } from './panel-store.ts'
@@ -29,19 +30,21 @@ function ResizeHandle() {
   )
 }
 
-const TABS = [{ id: 'files', label: 'Explorer' }, { id: 'terms', label: 'Agents' }] as const
+const TABS = [{ id: 'files', label: 'Explorer' }, { id: 'terms', label: 'Agents' }, { id: 'apps', label: 'Apps' }] as const
 
 /** Root-overlay entry: the right column, rendered only while the toggle has it open. */
 export function FilePanel() {
   const { open, sessionId, split, splitRatio, max, tab } = usePanel()
+  const appsSeen = useRef(false)
+  if (tab === 'apps') appsSeen.current = true
   if (!open || sessionId === null) return null
   return (
     <aside className="flykit-panel" aria-label="flykit panel" data-max={max || undefined}>
       {!max && <ResizeHandle />}
       <div className="flykit-panel-head">
         <div className="flykit-tabs" role="tablist" data-split={split || undefined}>
-          {/* Split shows both views, so both names read as active; a click still picks the one to focus when split ends. */}
-          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={split || tab === t.id} onClick={() => setPanel({ tab: t.id })}>{t.label}</button>)}
+          {/* Split shows Explorer and Agents together, so both names read as active; a click still picks the one to focus when split ends. Apps sits over that pair. */}
+          {TABS.map(t => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id || (split && tab !== 'apps' && t.id !== 'apps')} onClick={() => setPanel({ tab: t.id })}>{t.label}</button>)}
         </div>
         <div className="flykit-head-actions">
           <button
@@ -71,14 +74,18 @@ export function FilePanel() {
       <div className="flykit-panel-body">
         {/* One mount point for both views. Toggling split or tabs only hides a pane,
             so editor tabs and live terminals survive the switch. */}
-        <SplitPane
-          mode={split ? 'split' : tab === 'files' ? 'bottom' : 'top'}
-          ratio={splitRatio}
-          onRatio={r => setPanel({ splitRatio: r })}
-          label="Resize Agents pane"
-          top={<Terminals sessionId={sessionId} />}
-          bottom={<Explorer sessionId={sessionId} />}
-        />
+        <div className="flykit-pair" hidden={tab === 'apps'}>
+          <SplitPane
+            mode={split ? 'split' : tab === 'files' ? 'bottom' : 'top'}
+            ratio={splitRatio}
+            onRatio={r => setPanel({ splitRatio: r })}
+            label="Resize Agents pane"
+            top={<Terminals sessionId={sessionId} />}
+            bottom={<Explorer sessionId={sessionId} />}
+          />
+        </div>
+        {/* Mounted from the first visit on, so the WhatsApp screencast survives a tab switch. */}
+        {appsSeen.current && <Apps hidden={tab !== 'apps'} />}
       </div>
     </aside>
   )

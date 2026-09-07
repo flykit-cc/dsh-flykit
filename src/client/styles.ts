@@ -67,6 +67,17 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 /* The display:flex above would otherwise beat the hidden attribute the one-pane modes rely on. */
 .flykit-split-pane[hidden] { display: none; }
 .flykit-split-rest { flex: 1; height: auto; }
+/* Explorer/Agents pair and the Apps view share the body; one is hidden at a time. */
+.flykit-pair { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.flykit-pair[hidden] { display: none; }
+.flykit-apps { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--dsw-alias-bg-layer-1); }
+.flykit-apps[hidden] { display: none; }
+.flykit-apps iframe { flex: 1; width: 100%; border: 0; background: var(--dsw-alias-bg-layer-1); }
+.flykit-apps-tabs { display: flex; gap: 6px; padding: 8px 12px 0; }
+.flykit-apps-tabs button { all: unset; cursor: pointer; padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.flykit-apps-tabs button[aria-selected="true"] { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.flykit-apps-note { padding: 6px 12px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.flykit-apps-note button { all: unset; cursor: pointer; margin-left: 8px; color: var(--dsw-alias-brand-primary); }
 .flykit-split-bar {
   position: relative; flex: none; height: 7px; cursor: row-resize; touch-action: none; z-index: 2;
   border-top: 0.5px solid var(--dsw-alias-border-l2);
