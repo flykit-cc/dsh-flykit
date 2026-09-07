@@ -1,6 +1,7 @@
 /**
  * Model-facing tools that let the DSH agent drive the coding agents in the
- * flykit panel: open a terminal, type into it, wait for the answer, read it back.
+ * flykit panel: open a terminal, type into it, read it back. An answer arrives on
+ * its own as a follow-up turn (see notify.ts); waiting is still possible.
  *
  * These go through `defineTool`, not a raw `ToolDefinition`: `register()` on its
  * own expects finished JSON Schema, so handing it the per-property DSL yields a
@@ -12,7 +13,8 @@
 import { execFile } from 'node:child_process'
 import { defineTool, type ToolDefinition, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import * as terms from './terminals.js'
-import { screenText, stripAnsi, waitQuiet } from './term-io.js'
+import { screenText, stripAnsi, tail, waitQuiet } from './term-io.js'
+import { ORCHESTRATOR_TAG } from './notify.js'
 
 const COLS = 120
 const ROWS = 32
@@ -89,14 +91,6 @@ async function waitForBoot(t: terms.Term, signal: AbortSignal): Promise<string> 
   return out
 }
 
-/** Tail of a plain-text transcript, cut at a line boundary where one is near. */
-function tail(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text
-  const cut = text.slice(-maxChars)
-  const nl = cut.indexOf('\n')
-  return `…\n${nl > 0 && nl < 200 ? cut.slice(nl + 1) : cut}`
-}
-
 /** One-shot headless run. `claude` speaks JSON; `pi` prints the answer as text. */
 function runHeadless(agent: 'claude' | 'pi' | 'codex', prompt: string, cwd: string, timeoutMs: number, signal: AbortSignal): Promise<string> {
   const argv = agent === 'claude'
@@ -127,16 +121,17 @@ function claudeResult(stdout: string): string {
   return stdout
 }
 
-export function agentTools(): ToolDefinition[] {
+/** `arm(t)` starts the watcher that later queues the terminal's answer to the orchestrator. */
+export function agentTools(arm: (t: terms.Term) => void): ToolDefinition[] {
   return [
     defineTool({
       name: 'flykit_agent_start',
       description:
         'Open a coding agent in a terminal in this workspace and return its id. The terminal appears in the '
-        + 'flykit panel\'s Agents tab, where the user can watch and take over. Interactive agents need '
-        + 'flykit_agent_send to receive a task and flykit_agent_wait to answer; for a single question with no '
-        + 'follow-up, flykit_agent_run is cheaper. Returns once the agent has finished starting up, so the '
-        + 'first flykit_agent_send is not swallowed.',
+        + 'flykit panel\'s Agents tab, where the user can watch and take over. Give it work with '
+        + 'flykit_agent_send; its answer reaches you later as a message on its own. For a single question '
+        + 'with no follow-up, flykit_agent_run is cheaper. Returns once the agent has finished starting up, '
+        + 'so the first flykit_agent_send is not swallowed.',
       parameters: {
         agent: { type: 'string', enum: AGENT_NAMES, required: true, description: 'Which agent to run.' },
         name: { type: 'string', description: 'Tab label in the panel; defaults to the agent name. Use it when running several of the same agent.' },
@@ -159,9 +154,12 @@ export function agentTools(): ToolDefinition[] {
     defineTool({
       name: 'flykit_agent_send',
       description:
-        'Type text into a running agent terminal. Sends Enter afterwards unless enter is false — send false to '
-        + 'compose a multi-line message, or to answer a menu that reacts to a single keystroke. Returns '
-        + 'immediately; call flykit_agent_wait to read the reply.',
+        'Type text into a running agent terminal and return at once. The text is prefixed with '
+        + `"${ORCHESTRATOR_TAG}" so the agent knows it came from you, not the user. When the agent finishes `
+        + 'answering, the answer is delivered to you as a new message tagged [flykit-agent <name>] — after '
+        + 'your current work is done, so do not wait or poll for it; end your turn and it will arrive. Sends Enter '
+        + 'afterwards unless enter is false — send false (untagged) to compose a multi-line message, or to '
+        + 'answer a menu that reacts to a single keystroke.',
       parameters: {
         id: { type: 'string', required: true, description: 'Terminal id from flykit_agent_start.' },
         text: { type: 'string', required: true, description: 'Exactly what to type.' },
@@ -171,10 +169,12 @@ export function agentTools(): ToolDefinition[] {
       async execute(args, exec) {
         const t = mine(exec, args.id)
         if (t.exited !== null) throw new Error(`flykit: agent "${t.name}" already exited (${t.exited})`)
-        t.pty.write(args.text)
+        // ponytail: a tag lands on the last line of a multi-line compose too; fine until someone minds.
+        t.pty.write(args.enter === false ? args.text : `${ORCHESTRATOR_TAG} ${args.text}`)
         if (args.enter !== false) {
           await new Promise(r => setTimeout(r, ENTER_DELAY_MS))
           t.pty.write('\r')
+          arm(t)
         }
         return { text: `Sent ${args.text.length} characters to ${t.name}.` }
       },
@@ -214,9 +214,9 @@ export function agentTools(): ToolDefinition[] {
     defineTool({
       name: 'flykit_agent_wait',
       description:
-        'Wait for an agent terminal to stop printing, then return what it printed while waiting, as plain '
-        + 'text. This is how you collect an answer after flykit_agent_send. A reason of "timeout" means the '
-        + 'agent was still working — call again to keep waiting.',
+        'Block until an agent terminal stops printing, then return what it printed while waiting, as plain '
+        + 'text. Normally unnecessary: answers to flykit_agent_send arrive on their own. Use it only when you '
+        + 'must have the answer inside this turn. A reason of "timeout" means the agent was still working.',
       parameters: {
         id: { type: 'string', required: true },
         quietMs: { type: 'integer', description: 'Silence that counts as finished (default 1500).' },

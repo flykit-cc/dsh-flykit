@@ -17,6 +17,7 @@ import { screenText } from './term-io.js'
 // Type-only: declares `ctx.settings`.
 import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
+import { notifier } from './notify.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -33,6 +34,8 @@ function body(req: IncomingMessage): Promise<string> {
 }
 
 export function apply(ctx: Context): void {
+  // Answers from agent terminals reach the DSH agent as follow-up turns; 120x32 is the tool terminals' size.
+  const arm = notifier(ctx, 120, 32)
   // cwd comes from the session header only; a caller-supplied path is never honoured.
   const cwdOf = (url: URL) => {
     const id = url.searchParams.get('sessionId')
@@ -81,7 +84,10 @@ export function apply(ctx: Context): void {
   route('/api/flykit/term/input', async (_cwd, url, req) => {
     const t = terms.get(url.searchParams.get('id') ?? '')
     if (t === undefined || t.exited !== null) return null
-    t.pty.write(await body(req))
+    const keys = await body(req)
+    t.pty.write(keys)
+    // The user pressed Enter: their message and the agent's answer reach the orchestrator too.
+    if (keys.includes('\r')) arm(t)
     return { ok: true }
   })
   route('/api/flykit/term/resize', async (_cwd, url) => {
@@ -119,7 +125,7 @@ export function apply(ctx: Context): void {
   // Model-facing half of the same terminals. Deferred rather than in `inject` so a
   // bundle without the tool registry still gets the panel and the status line.
   ctx.inject(['tools'], toolCtx => {
-    for (const tool of agentTools()) toolCtx.effect(() => toolCtx.tools.register(tool), `flykit: tool ${tool.name}`)
+    for (const tool of agentTools(arm)) toolCtx.effect(() => toolCtx.tools.register(tool), `flykit: tool ${tool.name}`)
   })
   // Subscription usage of the Claude Code login on this machine; no session needed, token stays host-side.
   ctx.effect(() => ctx.webServer.register({

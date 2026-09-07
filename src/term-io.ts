@@ -81,3 +81,11 @@ export function waitQuiet(t: Quietable, quietMs: number, timeoutMs: number, sign
     else signal?.addEventListener('abort', onAbort, { once: true })
   })
 }
+
+/** Tail of a plain-text transcript, cut at a line boundary where one is near. */
+export function tail(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text
+  const cut = text.slice(-maxChars)
+  const nl = cut.indexOf('\n')
+  return `…\n${nl > 0 && nl < 200 ? cut.slice(nl + 1) : cut}`
+}
