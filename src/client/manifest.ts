@@ -20,8 +20,14 @@ export function installManifest(): () => void {
   const shipped = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
   const link = shipped ?? document.createElement('link')
   const before = link.getAttribute('href')
+  const ours = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`
   link.rel = 'manifest'
-  link.href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`
+  link.href = ours
   if (shipped === null) document.head.append(link)
-  return () => { if (before === null) link.remove(); else link.setAttribute('href', before) }
+  // A hot reload may run this dispose after the next bundle's install; only
+  // undo our own href, never the newer one.
+  return () => {
+    if (link.getAttribute('href') !== ours) return
+    if (before === null) link.remove(); else link.setAttribute('href', before)
+  }
 }

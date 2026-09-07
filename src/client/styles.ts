@@ -307,8 +307,11 @@ body[data-flykit-dragging-row] { cursor: row-resize; user-select: none; }
 .flykit-preview-frame { border: none; width: 100%; background: var(--dsw-alias-bg-base); }
 `
 
+// On a hot reload the new bundle's install and the old bundle's dispose run in
+// either order. Each install evicts whatever tag is there and each dispose
+// removes only its own node, so the last install always wins.
 export function installStyles(): () => void {
-  if (document.querySelector(`style[data-plugin="${STYLE_ID}"]`) !== null) return () => {}
+  document.querySelector(`style[data-plugin="${STYLE_ID}"]`)?.remove()
   const style = document.createElement('style')
   style.dataset.plugin = STYLE_ID
   style.textContent = css
