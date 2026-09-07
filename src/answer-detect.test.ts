@@ -88,3 +88,11 @@ test('nothing is decided until the output has been silent for QUIET_POLLS', () =
   assert.equal(a.armed, true, 'the window closed, so the startup draw is done')
   assert.equal(a.burst, 0, 'and the burst is spent')
 })
+
+test('a burst marked discard (a resize redraw) settles without ringing; the next answer still rings', () => {
+  const a = newActivity(1_000)                       // armed from history
+  a.discard = true
+  assert.deepEqual(burstThenQuiet(1_000, 1_400, 3).filter(s => step(a, s)), [])
+  assert.equal(a.discard, false)
+  assert.equal(burstThenQuiet(2_400, 900, 3).filter(s => step(a, s)).length, 1)
+})

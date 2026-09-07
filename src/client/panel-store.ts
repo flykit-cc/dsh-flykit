@@ -20,6 +20,8 @@ export interface PanelState {
   treeRatio: number
   /** Which pane shows while not split. */
   tab: 'files' | 'terms'
+  /** Focused terminal id; survives a panel remount (hot reload, tab switch) instead of snapping to the first tab. */
+  term: string | null
 }
 
 export const PANEL_MIN = 320
@@ -29,7 +31,7 @@ const KEY = 'flykit.panel'
 /** Persisted keys; `sessionId` is per-tab and never written. */
 type Saved = Omit<PanelState, 'sessionId'>
 
-const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, grid: false, splitRatio: 0.5, treeRatio: 0.38, tab: 'files' }
+const DEFAULTS: PanelState = { open: false, width: 460, sessionId: null, split: false, max: false, grid: false, splitRatio: 0.5, treeRatio: 0.38, tab: 'files', term: null }
 
 function load(): PanelState {
   try {
@@ -44,6 +46,7 @@ function load(): PanelState {
       splitRatio: clampRatio(j.splitRatio ?? DEFAULTS.splitRatio),
       treeRatio: clampRatio(j.treeRatio ?? DEFAULTS.treeRatio),
       tab: j.tab === 'terms' ? 'terms' : 'files',
+      term: typeof j.term === 'string' ? j.term : null,
     }
   } catch { return { ...DEFAULTS } }
 }

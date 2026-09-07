@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './api.ts'
 import { AgentGlyph, CloseIcon, GridIcon } from './icons.tsx'
 import { BellIcon } from './BellIcon.tsx'
-import { newActivity, step, type Activity } from '../answer-detect.ts'
 import { chime } from './chime.ts'
 import { setPanel, usePanel } from './panel-store.ts'
 import { TerminalView } from './TerminalView.tsx'
 import { TerminalThumb } from './TerminalThumb.tsx'
 import { ClaudeUsage } from './ClaudeUsage.tsx'
 
-interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; seq: number }
+interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; seq: number; answers: number }
 
 const AGENTS = [
   { id: 'claude', label: 'Claude Code' },
@@ -18,7 +17,7 @@ const AGENTS = [
   { id: 'shell', label: 'Shell' },
 ]
 
-/** An answer is a burst of at least this much output, then two quiet polls. */
+/** How long a card glows after its agent answers. */
 const RING_MS = 2_600
 
 /** "Claude Code 2" once more than one of that agent is running. */
@@ -31,28 +30,25 @@ function labelFor(terms: TermInfo[], t: TermInfo): string {
 const sig = (l: TermInfo[]) => l.map(t => `${t.id}:${t.label}:${t.exited}`).join('|')
 
 export function Terminals({ sessionId }: { sessionId: string }) {
-  const { grid, open: panelOpen } = usePanel()
+  const { grid, open: panelOpen, term: active } = usePanel()
   const [terms, setTerms] = useState<TermInfo[]>([])
-  const [active, setActive] = useState<string | null>(null)
+  const setActive = (id: string | null) => { if (id !== latest.current.active) setPanel({ term: id }) }
   const [picking, setPicking] = useState(false)
   const [muted, setMuted] = useState<Set<string>>(() => new Set())
   const [unread, setUnread] = useState<Set<string>>(() => new Set())
   const [ringing, setRinging] = useState<Set<string>>(() => new Set())
-  const activity = useRef(new Map<string, Activity>())
+  /** Answer count per terminal at the last poll; the host detects answers (notify.ts), the panel only rings. */
+  const seen = useRef(new Map<string, number>())
   const latest = useRef({ active, muted, panelOpen })
   latest.current = { active, muted, panelOpen }
 
   /** Ring when an agent answers; the unread dot only marks agents you are not on. */
   const observe = (list: TermInfo[]) => {
-    // Closed terminals never come back, so drop their state with them.
-    if (activity.current.size > list.length) {
-      const live = new Set(list.map(t => t.id))
-      for (const id of activity.current.keys()) if (!live.has(id)) activity.current.delete(id)
-    }
     for (const t of list) {
-      const a = activity.current.get(t.id) ?? newActivity(t.seq)
-      activity.current.set(t.id, a)
-      if (!step(a, t.seq)) continue
+      const prev = seen.current.get(t.id)
+      seen.current.set(t.id, t.answers)
+      // First sight is history (a reload, a terminal the DSH agent opened): only growth rings.
+      if (prev === undefined || t.answers <= prev) continue
       const { active: cur, muted: m, panelOpen: open } = latest.current
       if (m.has(t.id)) continue
       chime()
@@ -68,7 +64,8 @@ export function Terminals({ sessionId }: { sessionId: string }) {
       const list = j.terms ?? []
       observe(list)
       setTerms(prev => sig(prev) === sig(list) ? prev : list)
-      setActive(a => (a !== null && list.some(t => t.id === a)) ? a : (list[0]?.id ?? null))
+      const cur = latest.current.active
+      if (!(cur !== null && list.some(t => t.id === cur))) setActive(list[0]?.id ?? null)
     }).catch(() => {})
   // Polled, not fetched once: the DSH agent opens and closes terminals through
   // the flykit_agent_* tools, and the panel has to show what it did.
@@ -83,8 +80,7 @@ export function Terminals({ sessionId }: { sessionId: string }) {
     setPicking(false)
     fetch(api('terms', sessionId, { agent }), { method: 'POST' })
       .then(r => r.json()).then((t: TermInfo) => {
-        // Seen at birth, before its startup draw, so the draw arms rather than rings.
-        activity.current.set(t.id, newActivity(t.seq))
+        seen.current.set(t.id, t.answers)
         setTerms(l => [...l, t]); select(t.id)
       })
       .catch(() => {})

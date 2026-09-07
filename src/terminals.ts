@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { spawn } from 'node-pty'
 import type { IPty } from 'node-pty'
+import { newActivity, type Activity } from './answer-detect.js'
 
 /** Agents a terminal can run. The browser sends an id; argv never comes from the request. */
 export const AGENTS: Record<string, { label: string; argv: string[] }> = {
@@ -40,14 +41,20 @@ export interface Term {
   /** Characters ever written to `buffer`, so a reader can resume where it left off. */
   seq: number
   listeners: Set<(chunk: string) => void>
+  /** Answer detector, stepped by the host poll in notify.ts. */
+  activity: Activity
+  /** Answers seen so far; the panel rings when this grows. */
+  answers: number
+  /** `seq` at the Enter whose answer the orchestrator is owed, while one is. */
+  pending: number | undefined
 }
 
-export interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; seq: number }
+export interface TermInfo { id: string; agent: string; label: string; pid: number; exited: number | null; seq: number; answers: number }
 
 const terms = new Map<string, Term>()
 
 export function info(t: Term): TermInfo {
-  return { id: t.id, agent: t.agent, label: t.name, pid: t.pty.pid, exited: t.exited, seq: t.seq }
+  return { id: t.id, agent: t.agent, label: t.name, pid: t.pty.pid, exited: t.exited, seq: t.seq, answers: t.answers }
 }
 
 export function list(sessionId: string): TermInfo[] {
@@ -55,6 +62,8 @@ export function list(sessionId: string): TermInfo[] {
 }
 
 export function get(id: string): Term | undefined { return terms.get(id) }
+
+export function all(): Term[] { return [...terms.values()] }
 
 export function open(sessionId: string, cwd: string, agent: string, cols: number, rows: number, name?: string): Term | null {
   const spec = AGENTS[agent]
@@ -67,6 +76,7 @@ export function open(sessionId: string, cwd: string, agent: string, cols: number
   const t: Term = {
     id: randomUUID(), sessionId, agent, name: name?.trim() || spec.label,
     pty, cols, rows, exited: null, buffer: '', seq: 0, listeners: new Set(),
+    activity: newActivity(0), answers: 0, pending: undefined,
   }
   const push = (chunk: string) => {
     t.buffer = (t.buffer + chunk).slice(-SCROLLBACK)

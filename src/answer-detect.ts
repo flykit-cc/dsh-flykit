@@ -26,6 +26,8 @@ export interface Activity {
   quiet: number
   /** Set once the startup draw has settled. */
   armed: boolean
+  /** Drop the next burst: a resize made the TUI redraw, and a redraw is not an answer. */
+  discard: boolean
 }
 
 export const ANSWER_MIN_CHARS = 400
@@ -40,7 +42,7 @@ export const QUIET_POLLS = 2
  * finished drawing. Arming from it is what lets the very next answer ring.
  */
 export function newActivity(seq: number): Activity {
-  return { seq, burst: 0, quiet: 0, armed: seq >= ANSWER_MIN_CHARS }
+  return { seq, burst: 0, quiet: 0, armed: seq >= ANSWER_MIN_CHARS, discard: false }
 }
 
 /** Fold one poll into the activity. Returns true exactly once per answer. */
@@ -52,7 +54,8 @@ export function step(a: Activity, seq: number): boolean {
   } else if (++a.quiet === QUIET_POLLS) {
     const dense = a.burst >= ANSWER_MIN_CHARS
     a.burst = 0
-    answered = dense && a.armed
+    answered = dense && a.armed && !a.discard
+    a.discard = false
     if (dense) a.armed = true
   }
   a.seq = seq

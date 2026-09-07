@@ -17,7 +17,7 @@ import { screenText } from './term-io.js'
 // Type-only: declares `ctx.settings`.
 import type {} from '@deepseek-ai/dsh-settings'
 import { agentTools } from './agent-tools.js'
-import { notifier } from './notify.js'
+import { watchAnswers } from './notify.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions']
@@ -34,8 +34,10 @@ function body(req: IncomingMessage): Promise<string> {
 }
 
 export function apply(ctx: Context): void {
-  // Answers from agent terminals reach the DSH agent as follow-up turns; 120x32 is the tool terminals' size.
-  const arm = notifier(ctx, 120, 32)
+  // One host-side answer detector per terminal: it rings the panel and, after an Enter,
+  // queues the answer to the DSH agent as a follow-up turn. 120x32 is the tool terminals' size.
+  const { arm, stop } = watchAnswers(ctx, 120, 32)
+  ctx.effect(() => stop, 'flykit: answer watch')
   // cwd comes from the session header only; a caller-supplied path is never honoured.
   const cwdOf = (url: URL) => {
     const id = url.searchParams.get('sessionId')
@@ -94,7 +96,10 @@ export function apply(ctx: Context): void {
     const t = terms.get(url.searchParams.get('id') ?? '')
     const cols = Number(url.searchParams.get('cols')), rows = Number(url.searchParams.get('rows'))
     if (t === undefined || t.exited !== null || !(cols > 1 && rows > 1)) return null
-    t.cols = Math.min(cols, 500); t.rows = Math.min(rows, 200)
+    const next = { cols: Math.min(cols, 500), rows: Math.min(rows, 200) }
+    // A real size change makes a TUI redraw its whole screen (~1.4k chars on Claude Code): not an answer.
+    if (next.cols !== t.cols || next.rows !== t.rows) t.activity.discard = true
+    t.cols = next.cols; t.rows = next.rows
     t.pty.resize(t.cols, t.rows)
     return { ok: true }
   })

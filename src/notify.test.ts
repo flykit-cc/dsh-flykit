@@ -1,23 +1,22 @@
 import { test } from 'node:test'
-// Imports the build: notify.ts reaches its neighbours by their .js names, which node's source runner cannot follow.
 import assert from 'node:assert/strict'
-import { notifier, noteText } from '../lib/notify.js'
+// Imports the build: notify.ts reaches its neighbours by their .js names, which node's source runner cannot follow.
+import { watchAnswers, noteText } from '../lib/notify.js'
 import * as terms from '../lib/terminals.js'
 
-test('one Enter, one dense answer, one follow-up in the orchestrator queue', async t => {
-  t.mock.timers.enable({ apis: ['setInterval', 'Date'] })
+test('one Enter, one dense answer: the counter grows once and one follow-up is queued', async t => {
+  t.mock.timers.enable({ apis: ['setInterval'] })
   const delivered: string[] = []
   const ctx = {
     agents: { get: () => ({ followup: (m: { content: { text: string }[] }) => delivered.push(m.content[0]!.text) }) },
     logger: { warn: () => {} },
   }
   const term = terms.open('s1', process.cwd(), 'shell', 80, 24)!
+  const { arm, stop } = watchAnswers(ctx as never, 80, 24)
   try {
-    const arm = notifier(ctx as never, 80, 24)
     arm(term)
-    arm(term)                                        // second Enter while armed: no second watcher
+    arm(term)                                        // second Enter while pending: still one note
     term.pty.write(`printf '%s\\n' $(seq 1 300)\r`)  // a dense burst, then the prompt waits
-    await new Promise(r => setImmediate(r))
     for (let i = 0; i < 60 && delivered.length === 0; i++) {
       await new Promise(r => setTimeout(r, 200))     // real wait for the shell; mocked clock for the poll
       t.mock.timers.tick(2_000)
@@ -26,7 +25,10 @@ test('one Enter, one dense answer, one follow-up in the orchestrator queue', asy
     assert.equal(delivered.length, 1)
     assert.match(delivered[0]!, /^\[flykit-agent Shell\] finished\./)
     assert.match(delivered[0]!, /300/)
+    assert.equal(term.answers, 1)
+    assert.equal(term.pending, undefined)
   } finally {
+    stop()
     terms.close(term.id)
   }
 })
