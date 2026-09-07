@@ -31,7 +31,7 @@ export function noteText(name: string, screen: string): string {
 
 export function watchAnswers(ctx: Context, cols: number, rows: number): { arm: (t: terms.Term) => void; stop: () => void } {
   const deliver = async (t: terms.Term, from: number) => {
-    const agent = ctx.agents?.get(t.sessionId as SessionId)
+    const agent = ctx.agents.get(t.sessionId as SessionId)
     if (agent === undefined) return
     const screen = tail(await screenText(terms.since(t, from), cols, rows), MAX_CHARS)
     try {

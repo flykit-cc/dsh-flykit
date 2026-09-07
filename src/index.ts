@@ -21,7 +21,7 @@ import { watchAnswers } from './notify.js'
 import { APP_ICON_PNG, APP_MANIFEST } from './app-icon.js'
 
 export const name = 'flykit'
-export const inject = ['webServer', 'sessions']
+export const inject = ['webServer', 'sessions', 'agents']
 
 type Handler = (cwd: string, url: URL, req: IncomingMessage, res: ServerResponse) => Promise<unknown>
 
