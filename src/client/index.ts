@@ -11,7 +11,6 @@ import { StatusLine } from './StatusLine.tsx'
 import { PanelToggle } from './PanelToggle.tsx'
 import { FilePanel } from './FilePanel.tsx'
 import { installStyles } from './styles.ts'
-import { installManifest } from './manifest.ts'
 import { ModelPicker } from './ModelPicker.tsx'
 import type { ModelPickerInjected } from './ModelPicker.tsx'
 
@@ -19,7 +18,6 @@ export const inject = ['slots']
 
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => installStyles(), 'flykit: styles')
-  ctx.effect(() => installManifest(), 'flykit: manifest')
   ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(
     { name: 'conversation.composer.dock', id: 'flykit', order: 10 },
     StatusLine,

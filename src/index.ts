@@ -155,15 +155,20 @@ export function apply(ctx: Context): void {
       res.end(JSON.stringify({ apps: await ensureApps() }))
     },
   }), 'flykit: /api/flykit/apps')
-  // Web app manifest + icon: Chrome installs from a same-origin manifest only (see client/manifest.ts).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: '/api/flykit/manifest.webmanifest',
-    handler: (_req, res) => {
-      res.setHeader('content-type', 'application/manifest+json; charset=utf-8')
-      res.end(JSON.stringify(APP_MANIFEST))
-    },
-  }), 'flykit: /api/flykit/manifest.webmanifest')
+  // Web app manifest + icon. The shell's index links /manifest.webmanifest, a static file with the same app
+  // id as ours; an exact route beats the static fallback, so Chrome sees "flykit" on every load instead of
+  // flip-flopping between the two names and asking to review the rename.
+  for (const path of ['/manifest.webmanifest', '/api/flykit/manifest.webmanifest']) {
+    ctx.effect(() => ctx.webServer.register({
+      kind: 'exact',
+      path,
+      handler: (_req, res) => {
+        res.setHeader('content-type', 'application/manifest+json; charset=utf-8')
+        res.setHeader('cache-control', 'no-store')
+        res.end(JSON.stringify(APP_MANIFEST))
+      },
+    }), `flykit: ${path}`)
+  }
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/api/flykit/icon.png',
