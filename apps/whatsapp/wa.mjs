@@ -14,7 +14,13 @@ const PORT = +(process.env.WA_PORT || 9222);          // Chrome CDP
 const VIEW = +(process.env.WA_VIEW_PORT || 9223);     // viewer http
 // The linked WhatsApp session lives outside the package, never in the repo.
 const PROFILE = path.resolve(process.env.WA_PROFILE || path.join(homedir(), '.dsh/flykit/whatsapp'));
-const CHROME = process.env.WA_CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+// WA_CHROME overrides; otherwise pick the first Chrome the host actually has
+// (the macOS path on the MacBook, /usr/bin/google-chrome on the Linux VPS).
+const CHROME = process.env.WA_CHROME || [
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+].find(existsSync) || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PIDFILE = path.join(PROFILE, 'wa.pid');
 const URL_WA = 'https://web.whatsapp.com/';
 // Browser pages allowed to open Chrome's CDP websocket (the viewer). Add the DSH origin via WA_ORIGINS.
