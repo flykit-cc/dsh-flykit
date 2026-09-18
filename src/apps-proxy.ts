@@ -51,6 +51,9 @@ function httpProxy(app: App, guard: AppGuard) {
 function cdpProxy(app: App, guard: AppGuard) {
   const wss = new WebSocketServer({ noServer: true })
   const origin = app.viewer.replace(/\/$/, '')   // Chrome already allows this origin via --remote-allow-origins
+  // `ws` hands `message` data over as a Buffer even for text frames, and re-sending a Buffer
+  // emits a binary frame — which Chrome's CDP rejects (it speaks JSON text). Decode to text first.
+  const text = (d: unknown): string => Buffer.isBuffer(d) ? d.toString('utf8') : String(d)
   return (req: IncomingMessage, socket: Duplex, head: Buffer) => {
     if (guard(req) !== undefined) { socket.destroy(); return }
     pageTarget(app).then(url => {
@@ -59,9 +62,9 @@ function cdpProxy(app: App, guard: AppGuard) {
         const chrome = new WebSocket(url, { perMessageDeflate: false, origin })
         // Chrome's CDP takes a moment to open; the viewer sends its first command the
         // instant the browser socket is open, so buffer until Chrome is ready.
-        let pending: unknown[] = []
-        browser.on('message', (data: unknown) => { if (chrome.readyState === WebSocket.OPEN) chrome.send(data); else pending.push(data) })
-        chrome.on('open', () => { for (const data of pending) chrome.send(data); pending = []; chrome.on('message', (data: unknown) => { if (browser.readyState === WebSocket.OPEN) browser.send(data) }) })
+        let pending: string[] = []
+        browser.on('message', (data: unknown) => { const t = text(data); if (chrome.readyState === WebSocket.OPEN) chrome.send(t); else pending.push(t) })
+        chrome.on('open', () => { for (const t of pending) chrome.send(t); pending = []; chrome.on('message', (data: unknown) => { if (browser.readyState === WebSocket.OPEN) browser.send(text(data)) }) })
         chrome.on('close', () => { try { browser.close() } catch { /* already closed */ } })
         browser.on('close', () => { try { chrome.close() } catch { /* already closed */ } })
       })
