@@ -2,7 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
 import { WebSocket, WebSocketServer } from 'ws'
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-host-webserver'   // types ctx.webServer
+import type {} from '@deepseek-ai/dsh-host-webserver'        // types ctx.webServer
+import type {} from '@deepseek-ai/dsh-client-connection'      // types ctx.connection
 import { APPS, type App } from './apps.js'
 
 /**
@@ -71,8 +72,7 @@ function cdpProxy(app: App, guard: AppGuard) {
 
 /** Register the viewer + CDP proxy routes for every app, behind the harness's own auth. */
 export function registerAppProxies(ctx: Context): void {
-  const connection = (ctx as unknown as { get: (name: string) => unknown }).get('connection') as { requestRejection: AppGuard } | undefined
-  const guard: AppGuard = req => connection?.requestRejection(req) ?? 401   // no auth service = refuse, never leak the app
+  const guard: AppGuard = req => ctx.connection.requestRejection(req)
   for (const app of APPS) {
     ctx.effect(() => ctx.webServer.register({ kind: 'prefix', path: `/apps/${app.id}`, handler: httpProxy(app, guard) }), `flykit: /apps/${app.id}`)
     ctx.effect(() => ctx.webServer.registerUpgrade({ path: `/apps/${app.id}/cdp`, handler: cdpProxy(app, guard) }), `flykit: /apps/${app.id}/cdp`)

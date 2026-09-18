@@ -6,6 +6,9 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-session'
 // Type-only: declares `ctx.tools` on the host Context.
 import type {} from '@deepseek-ai/dsh-tools'
+// Type-only: declares `ctx.connection`; `credentialRef` brands a ref for `ctx.credentials`.
+import type {} from '@deepseek-ai/dsh-client-connection'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { gitStatus } from './git.js'
 import { listFiles, readText, writeText } from './files.js'
@@ -23,7 +26,7 @@ import { ensureApps } from './apps.js'
 import { registerAppProxies } from './apps-proxy.js'
 
 export const name = 'flykit'
-export const inject = ['webServer', 'sessions', 'agents']
+export const inject = ['webServer', 'sessions', 'agents', 'connection', 'credentials']
 
 type Handler = (cwd: string, url: URL, req: IncomingMessage, res: ServerResponse) => Promise<unknown>
 
@@ -195,11 +198,7 @@ export function apply(ctx: Context): void {
   // see `TARGETS`. Optional: a composition without the settings service simply
   // keeps whatever static list its adapters ship.
   ctx.inject(['settings'], (scope: Context) => {
-    // The credentials service is optional, so it is fetched, not injected —
-    // the same `ctx.get` the llm adapters use. The property read does NOT
-    // resolve a service, so `scope.credentials` would be undefined here.
-    const getService = (ctx as unknown as { get: (name: string) => unknown }).get.bind(ctx)
-    const creds = getService('credentials') as { resolve: (ref: string) => Promise<{ value: string } | undefined> } | undefined
+    // `credentials` is injected at the plugin level (see `inject`), so it is always present here.
 
     interface Outcome { label: string; count?: number; skipped?: string }
 
@@ -216,7 +215,7 @@ export function apply(ctx: Context): void {
       const section = scope.settings.get(target.ns) as { baseURL?: string; apiKeyEnv?: string } | undefined
       if (section === undefined) return { label: target.label, skipped: `${target.ns} not configured` }
       const ref = section.apiKeyEnv ?? target.defaultApiKeyEnv
-      const resolved = ref === '' ? undefined : creds === undefined ? undefined : await creds.resolve(ref).catch(() => undefined)
+      const resolved = ref === '' ? undefined : await ctx.credentials.resolve(credentialRef(ref)).catch(() => undefined)
       const raw = await fetchListing(section.baseURL ?? target.defaultBaseURL, resolved?.value)
       const models = discover(raw, target)
       if (models.length < target.floor) return { label: target.label, skipped: `${models.length} models returned` }
