@@ -57,14 +57,13 @@ function cdpProxy(app: App, guard: AppGuard) {
       if (url === null) { socket.destroy(); return }
       wss.handleUpgrade(req, socket, head, browser => {
         const chrome = new WebSocket(url, { perMessageDeflate: false, origin })
-        const relay = (from: WebSocket, to: WebSocket) => from.on('message', (data: unknown) => { if (to.readyState === WebSocket.OPEN) to.send(data) })
-        relay(browser, chrome)
-        relay(chrome, browser)
-        const teardown = () => { try { browser.close() } catch { /* already closed */ } try { chrome.close() } catch { /* already closed */ } }
-        chrome.on('close', teardown)
-        browser.on('close', teardown)
-        chrome.on('error', teardown)
-        browser.on('error', teardown)
+        // Chrome's CDP takes a moment to open; the viewer sends its first command the
+        // instant the browser socket is open, so buffer until Chrome is ready.
+        let pending: unknown[] = []
+        browser.on('message', (data: unknown) => { if (chrome.readyState === WebSocket.OPEN) chrome.send(data); else pending.push(data) })
+        chrome.on('open', () => { for (const data of pending) chrome.send(data); pending = []; chrome.on('message', (data: unknown) => { if (browser.readyState === WebSocket.OPEN) browser.send(data) }) })
+        chrome.on('close', () => { try { browser.close() } catch { /* already closed */ } })
+        browser.on('close', () => { try { chrome.close() } catch { /* already closed */ } })
       })
     }).catch(() => socket.destroy())
   }
