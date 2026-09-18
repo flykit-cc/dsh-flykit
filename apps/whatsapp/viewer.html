@@ -13,16 +13,17 @@
 <script>
 // Talks CDP straight to headless Chrome (allowed via --remote-allow-origins). Screencast in, input out.
 const c = document.getElementById('c'), ctx = c.getContext('2d'), bar = document.getElementById('bar');
-const HOST = location.host; // same server as /json/list
 let ws, id = 0, meta = { deviceWidth: 1280, deviceHeight: 800 }, pend = new Map();
 const send = (method, params = {}) => new Promise(r => { pend.set(++id, r); ws.send(JSON.stringify({ id, method, params })); });
 const note = (cls, text) => { bar.className = cls; bar.textContent = text; };
 
 async function connect() {
-  const list = await fetch('/json/list').then(r => r.json()).catch(() => null);
+  // Same-origin paths: the harness proxies /apps/whatsapp/json/list and /apps/whatsapp/cdp to
+  // the local viewer + Chrome CDP, so this works whether the panel is local or behind the tunnel.
+  const list = await fetch('json/list').then(r => r.json()).catch(() => null);
   const page = list && list.find && list.find(t => t.type === 'page' && t.url.startsWith('https://web.whatsapp.com'));
   if (!page) { note('err', 'CDP server down or no WhatsApp tab (node wa.mjs start)'); return setTimeout(connect, 2000); }
-  ws = new WebSocket(page.webSocketDebuggerUrl.replace(/\/\/[^/]+/, '//' + HOST.replace(/:\d+$/, ':' + new URL(page.webSocketDebuggerUrl).port)));
+  ws = new WebSocket('cdp');
   ws.onclose = () => { note('err', 'disconnected, retrying'); setTimeout(connect, 2000); };
   ws.onmessage = e => {
     const m = JSON.parse(e.data);

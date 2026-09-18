@@ -20,6 +20,7 @@ import { agentTools } from './agent-tools.js'
 import { watchAnswers } from './notify.js'
 import { APP_ICON_PNG, manifestFor } from './app-icon.js'
 import { ensureApps } from './apps.js'
+import { registerAppProxies } from './apps-proxy.js'
 
 export const name = 'flykit'
 export const inject = ['webServer', 'sessions', 'agents']
@@ -155,6 +156,8 @@ export function apply(ctx: Context): void {
       res.end(JSON.stringify({ apps: await ensureApps() }))
     },
   }), 'flykit: /api/flykit/apps')
+  // Serve each app's viewer + CDP screencast under /apps/<id>/ on the harness origin (see apps-proxy.ts).
+  registerAppProxies(ctx)
   // Web app manifest + icon. The shell's index links /manifest.webmanifest, a static file with the same app
   // id as ours; an exact route beats the static fallback, so Chrome sees "flykit" on every load instead of
   // flip-flopping between the two names and asking to review the rename.
