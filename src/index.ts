@@ -12,7 +12,7 @@ import { listFiles, readText, writeText } from './files.js'
 import { streamChanges } from './watch.js'
 import * as terms from './terminals.js'
 import { claudeUsage } from './claude-usage.js'
-import { fetchDeepSeekIds, fetchOpenRouter } from './catalog-sync.js'
+import { TARGETS, discover, entryFor, extraTargets, fetchListing, type CatalogTarget } from './catalog-sync.js'
 import { screenText } from './term-io.js'
 // Type-only: declares `ctx.settings`.
 import type {} from '@deepseek-ai/dsh-settings'
@@ -188,37 +188,56 @@ export function apply(ctx: Context): void {
     },
   }), 'flykit: /api/flykit/watch')
 
-  // Live OpenRouter catalog into the user's llm settings. Optional: a
-  // composition without the settings service simply keeps the static list.
+  // Live model catalogs into the user's llm settings, one target per provider:
+  // see `TARGETS`. Optional: a composition without the settings service simply
+  // keeps whatever static list its adapters ship.
   ctx.inject(['settings'], (scope: Context) => {
-    const NS = 'llm-pi-ai'
-    const DS = 'llm-deepseek'
+    // The credentials service is optional, so it is fetched, not injected —
+    // the same `ctx.get` the llm adapters use. The property read does NOT
+    // resolve a service, so `scope.credentials` would be undefined here.
+    const getService = (ctx as unknown as { get: (name: string) => unknown }).get.bind(ctx)
+    const creds = getService('credentials') as { resolve: (ref: string) => Promise<{ value: string } | undefined> } | undefined
+
+    interface Outcome { label: string; count?: number; skipped?: string }
+
     /**
-     * DeepSeek's own provider, checked rather than written: see `fetchDeepSeekIds`.
-     * Silent unless the live list names something the adapter is not configured for.
+     * Read the target's section, then its credential, then its live listing.
+     *
+     * A section that is absent is not ours to create — an adapter nobody
+     * configured keeps its own defaults, which is what the deepseek route did
+     * until its section existed. A section that cannot be listed, or that
+     * answers with something too small to be a real catalog, is reported and
+     * left exactly as it is.
      */
-    const deepSeekNote = async (): Promise<string | undefined> => {
-      const creds = (scope as { credentials?: { resolve: (ref: string) => Promise<{ value: string } | undefined> } }).credentials
-      if (creds === undefined) return undefined
-      const cfg = scope.settings.get(DS) as { apiKeyEnv?: string; baseURL?: string; models?: { id: string }[] } | undefined
-      const key = await creds.resolve(cfg?.apiKeyEnv ?? 'DEEPSEEK_API_KEY').catch(() => undefined)
-      if (key === undefined) return undefined
-      const live = await fetchDeepSeekIds(key.value, cfg?.baseURL)
-      if (cfg?.models === undefined) return undefined   // adapter defaults are in force; nothing to compare against
-      const missing = live.filter(id => !cfg.models!.some(m => m.id === id))
-      return missing.length === 0 ? undefined : `DeepSeek adds ${missing.join(', ')}`
+    const syncOne = async (target: CatalogTarget): Promise<Outcome> => {
+      const section = scope.settings.get(target.ns) as { baseURL?: string; apiKeyEnv?: string } | undefined
+      if (section === undefined) return { label: target.label, skipped: `${target.ns} not configured` }
+      const ref = section.apiKeyEnv ?? target.defaultApiKeyEnv
+      const resolved = ref === '' ? undefined : creds === undefined ? undefined : await creds.resolve(ref).catch(() => undefined)
+      const raw = await fetchListing(section.baseURL ?? target.defaultBaseURL, resolved?.value)
+      const models = discover(raw, target)
+      if (models.length < target.floor) return { label: target.label, skipped: `${models.length} models returned` }
+      await scope.settings.mutate(target.ns, [{ op: 'set', path: target.path, value: models.map(m => entryFor(target, m)) }])
+      return { label: target.label, count: models.length }
     }
+
     const sync = async (): Promise<{ count: number; note?: string } | { skipped: string }> => {
-      const doc = scope.settings.get(NS) as { providers?: Record<string, unknown> } | undefined
-      if (doc?.providers?.['openrouter'] === undefined) return { skipped: 'openrouter not configured' }
-      const models = await fetchOpenRouter()
-      if (models.length < 50) return { skipped: `only ${models.length} models returned` }   // never replace a full list with a stub
-      await scope.settings.mutate(NS, [{ op: 'set', path: ['providers', 'openrouter', 'models'], value: models }])
-      const note = await deepSeekNote().catch(() => undefined)
-      return { count: models.length, ...(note === undefined ? {} : { note }) }
+      const pi = scope.settings.get('llm-pi-ai')
+      const targets = [...TARGETS, ...extraTargets(pi)]
+      const outcomes: Outcome[] = []
+      for (const target of targets) {
+        try { outcomes.push(await syncOne(target)) }
+        catch (e) { outcomes.push({ label: target.label, skipped: e instanceof Error ? e.message : String(e) }) }
+      }
+      const count = outcomes.reduce((n, o) => n + (o.count ?? 0), 0)
+      if (count === 0) return { skipped: outcomes.map(o => `${o.label}: ${o.skipped ?? 'nothing to write'}`).join('; ') }
+      const failures = outcomes.filter(o => o.skipped !== undefined).map(o => `${o.label}: ${o.skipped}`)
+      return failures.length === 0 ? { count } : { count, note: failures.join(' · ') }
     }
     // Once at boot, then daily; failures are logged, never thrown into the host.
-    const run = () => { sync().then(r => { if ('count' in r) console.log(`[flykit] openrouter catalog: ${r.count} models`) }).catch(e => console.warn('[flykit] catalog sync failed:', e instanceof Error ? e.message : e)) }
+    const run = () => { sync().then(r => {
+      console.log('count' in r ? `[flykit] catalog sync: ${r.count} models${r.note === undefined ? '' : ` (${r.note})`}` : `[flykit] catalog sync: skipped — ${r.skipped}`)
+    }).catch(e => console.warn('[flykit] catalog sync failed:', e instanceof Error ? e.message : e)) }
     const boot = setTimeout(run, 3_000)
     const daily = setInterval(run, 24 * 3600_000)
     scope.effect(() => () => { clearTimeout(boot); clearInterval(daily) }, 'flykit: catalog sync')
