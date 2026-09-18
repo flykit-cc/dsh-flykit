@@ -28,8 +28,13 @@ const ORIGINS = [`http://127.0.0.1:${VIEW}`, `http://localhost:${VIEW}`, ...(pro
 // Phase 1: with "HeadlessChrome" in the UA WhatsApp hides the "Stay logged in on this browser" checkbox.
 // A plain Chrome UA makes it appear (checked). Nothing else needed a flag.
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
+// WA_FAKE_AUDIO: a WAV file the (fake) microphone plays when WhatsApp records a voice note.
+// Lets a script inject pre-recorded audio (e.g. ElevenLabs) as a real in-app voice note.
+const FAKE_AUDIO = process.env.WA_FAKE_AUDIO;
 const ARGS = ['--headless=new', `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, `--remote-allow-origins=${ORIGINS.join(',')}`,
-  `--user-agent=${UA}`, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800', URL_WA];
+  `--user-agent=${UA}`, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800',
+  ...(FAKE_AUDIO ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${FAKE_AUDIO}`] : []),
+  URL_WA];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const die = (msg, code = 1) => { console.error(msg); process.exit(code); };
